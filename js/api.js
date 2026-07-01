@@ -23,10 +23,14 @@ const API = (() => {
       const data = await res.json().catch(() => ({}));
 
       if (res.status === 401) {
-        Auth.clear();
-        UI.error('Sesión expirada. Iniciá sesión nuevamente.');
-        App.navigate('login');
-        return null;
+        // Si ya había sesión activa → expiró. Si no → credenciales incorrectas.
+        if (Auth.getToken()) {
+          Auth.clear();
+          UI.error('Sesión expirada. Iniciá sesión nuevamente.');
+          App.navigate('login');
+          return null;
+        }
+        throw new Error(data.error || 'Usuario o contraseña incorrectos');
       }
 
       if (!res.ok) {

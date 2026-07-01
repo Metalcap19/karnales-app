@@ -148,12 +148,8 @@ const App = (() => {
     }
   }
 
-  // ── Inicializar cuando el DOM esté listo ─────────────────────
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  // ── Inicializar al final, cuando todos los scripts estén cargados ──
+  window.addEventListener('load', init);
 
   return { navigate, register, doLogout };
 

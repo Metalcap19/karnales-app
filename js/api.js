@@ -73,13 +73,13 @@ const API = (() => {
   const getConfig    = (seccion)     => get('config', seccion ? { seccion } : undefined);
   const saveConfig   = (body)        => post('config', body);
   const getUsuarios  = ()            => get('config', { seccion: 'usuarios' });
-  const createUsuario= (body)        => post('config', { seccion: 'usuarios', ...body });
-  const updateUsuario= (body)        => put('config', { seccion: 'usuarios', ...body });
-  const deleteUsuario= (usuario)     => del('config', { seccion: 'usuarios', usuario });
-  const createRubro  = (body)        => post('config', { seccion: 'rubros', ...body });
-  const updateRubro  = (body)        => put('config', { seccion: 'rubros', ...body });
-  const deleteRubro  = (id)          => del('config', { seccion: 'rubros', id });
-  const cambiarPassword = (body)     => post('config', { seccion: 'cambiar-password', ...body });
+  const createUsuario= (body)        => post('config?seccion=usuarios', body);
+  const updateUsuario= (body)        => put('config?seccion=usuarios', body);
+  const deleteUsuario= (usuario)     => del(`config?seccion=usuarios&usuario=${encodeURIComponent(usuario)}`);
+  const createRubro  = (body)        => post('config?seccion=rubros', body);
+  const updateRubro  = (body)        => put('config?seccion=rubros', body);
+  const deleteRubro  = (id)          => del(`config?seccion=rubros&id=${encodeURIComponent(id)}`);
+  const cambiarPassword = (body)     => post('config?seccion=cambiar-password', body);
 
   return {
     login,

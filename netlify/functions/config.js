@@ -60,19 +60,26 @@ exports.handler = async (event) => {
 
       if (method === 'POST') {
         const data = JSON.parse(event.body || '{}');
-        const { clave, valor } = data;
-        if (!clave) return respond(400, { error: 'Clave requerida' });
+
+        // Acepta { clave, valor } o un objeto completo { nombreNegocio, subtitulo, ... }
+        const pares = data.clave
+          ? [{ clave: data.clave, valor: String(data.valor ?? '') }]
+          : Object.entries(data).map(([clave, valor]) => ({ clave, valor: String(valor ?? '') }));
+
+        if (pares.length === 0) return respond(400, { error: 'Sin datos para guardar' });
 
         const raw = await readSheetRaw('Config!A:B');
-        let rowIndex = -1;
-        for (let i = 1; i < raw.length; i++) {
-          if (raw[i][0] === clave) { rowIndex = i + 1; break; }
-        }
-
-        if (rowIndex === -1) {
-          await appendRow('Config', [clave, valor || '']);
-        } else {
-          await updateRow('Config', rowIndex, [clave, valor || '']);
+        for (const { clave, valor } of pares) {
+          let rowIndex = -1;
+          for (let i = 1; i < raw.length; i++) {
+            if (raw[i] && raw[i][0] === clave) { rowIndex = i + 1; break; }
+          }
+          if (rowIndex === -1) {
+            await appendRow('Config', [clave, valor]);
+            raw.push([clave, valor]); // actualizar cache local para evitar duplicados
+          } else {
+            await updateRow('Config', rowIndex, [clave, valor]);
+          }
         }
         return respond(200, { mensaje: 'Configuración actualizada' });
       }

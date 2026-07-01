@@ -5,16 +5,16 @@
 // GET /api/ventas?mes=2024-06   → ventas del mes
 // POST /api/ventas              → registra venta + descuenta stock + registra en caja
 //
-// Columnas Ventas (0-11):
+// Columnas Ventas (0-12):
 // Fecha | IDVenta | ProductoID | Producto | Cantidad | PrecioUnitario |
-// Descuento% | PrecioFinal | Cliente | FormaPago | Usuario | Observaciones
+// Descuento% | PrecioFinal | Cliente | FormaPago | Usuario | Observaciones | MontoDeuda
 //
-// Columnas Productos (0-8):
-// ID | Nombre | Rubro | Cantidad | PrecioCompra | PrecioVenta | Activo | FechaAlta | FechaModificacion
+// Columnas Productos (0-10):
+// ID | Nombre | Rubro | Cantidad | PrecioCompra | PrecioVenta | Activo | FechaAlta | FechaModificacion | Imagen | Talle
 
 const {
   readSheet, appendRow, updateRow, findRowIndex,
-  nextVentaId, today, respond, handleOptions,
+  nextVentaId, nextId, today, respond, handleOptions,
 } = require('./_sheets');
 const { verifyToken } = require('./_auth');
 
@@ -32,6 +32,7 @@ function rowToVenta(row) {
     formaPago:      row[9]  || '',
     usuario:        row[10] || '',
     observaciones:  row[11] || '',
+    montoDeuda:     Number(row[12]) || 0,
   };
 }
 
@@ -47,7 +48,7 @@ exports.handler = async (event) => {
   try {
     // ── GET ───────────────────────────────────────────────────────────────────
     if (method === 'GET') {
-      const rows = await readSheet('Ventas!A:L');
+      const rows = await readSheet('Ventas!A:M');
       let ventas = rows.filter(r => r[0]).map(rowToVenta);
 
       // Filtro por fecha exacta: ?fecha=2024-06-15 o ?fecha=hoy
@@ -73,6 +74,7 @@ exports.handler = async (event) => {
       const {
         productoId, cantidad, precioUnitario,
         descuento = 0, cliente = '', formaPago, observaciones = '',
+        montoDeuda = 0,
       } = data;
 
       // Validaciones
@@ -80,6 +82,7 @@ exports.handler = async (event) => {
       if (!cantidad || cantidad <= 0) return respond(400, { error: 'Cantidad inválida' });
       if (!precioUnitario || precioUnitario <= 0) return respond(400, { error: 'Precio unitario inválido' });
       if (!formaPago)      return respond(400, { error: 'Forma de pago requerida' });
+      if (montoDeuda > 0 && !cliente.trim()) return respond(400, { error: 'El nombre del cliente es requerido cuando hay monto a pagar' });
 
       // Verificar que el producto existe y tiene stock suficiente
       const prodRows = await readSheet('Productos!A:I');
@@ -104,12 +107,16 @@ exports.handler = async (event) => {
       const idVenta = await nextVentaId();
       const fechaHoy = today();
 
+      // Validar montoDeuda
+      const deuda = Math.min(Math.max(Number(montoDeuda) || 0, 0), precioFinal);
+      const montoPagadoAhora = parseFloat((precioFinal - deuda).toFixed(2));
+
       // 1. Registrar la venta
       const ventaRow = [
         fechaHoy,
         idVenta,
         productoId,
-        prodRow[1], // nombre del producto en el momento de la venta
+        prodRow[1],
         Number(cantidad),
         Number(precioUnitario),
         descuentoPct,
@@ -118,6 +125,7 @@ exports.handler = async (event) => {
         formaPago,
         auth.payload.usuario,
         observaciones.trim(),
+        deuda, // MontoDeuda (0 si pagó todo)
       ];
       await appendRow('Ventas', ventaRow);
 
@@ -129,27 +137,50 @@ exports.handler = async (event) => {
         nuevoStock,
         prodRow[4], prodRow[5], prodRow[6],
         prodRow[7],
-        fechaHoy, // FechaModificacion
+        fechaHoy,
+        prodRow[9]  || '', // imagen
+        prodRow[10] || '', // talle
       ];
       await updateRow('Productos', prodRowIndex, prodActualizado);
 
-      // 3. Registrar ingreso en Caja
-      const cajaRow = [
-        fechaHoy,
-        'Ingreso',
-        'Venta',
-        precioFinal,
-        auth.payload.usuario,
-        `${prodRow[1]} x${cantidad}${descuentoPct > 0 ? ` (${descuentoPct}% dto)` : ''}${cliente ? ` — ${cliente}` : ''}`,
-        idVenta,
-      ];
-      await appendRow('Caja', cajaRow);
+      // 3. Registrar en Caja solo lo que se cobró ahora (puede ser $0 si es todo a pagar)
+      if (montoPagadoAhora > 0) {
+        const cajaRow = [
+          fechaHoy,
+          'Ingreso',
+          'Venta',
+          montoPagadoAhora,
+          auth.payload.usuario,
+          `${prodRow[1]} x${cantidad}${descuentoPct > 0 ? ` (${descuentoPct}% dto)` : ''}${cliente.trim() ? ` — ${cliente.trim()}` : ''}`,
+          idVenta,
+        ];
+        await appendRow('Caja', cajaRow);
+      }
+
+      // 4. Si hay deuda, crear registro en Deudores
+      if (deuda > 0) {
+        const deudorId = await nextId('Deudores', 'DEU');
+        await appendRow('Deudores', [
+          deudorId,
+          fechaHoy,
+          idVenta,
+          cliente.trim(),
+          prodRow[1],
+          deuda,
+          'Pendiente',
+          auth.payload.usuario,
+          '', // fechaPago vacía hasta que pague
+          observaciones.trim(),
+        ]);
+      }
 
       return respond(201, {
         mensaje: 'Venta registrada correctamente',
         idVenta,
         precioFinal,
         nuevoStock,
+        deuda,
+        montoPagadoAhora,
       });
     }
 

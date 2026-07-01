@@ -42,7 +42,7 @@
     productosCache.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.id;
-      opt.textContent = `${p.nombre} (Stock: ${p.cantidad || 0})`;
+      opt.textContent = `${p.nombre}${p.talle ? ' · T' + p.talle : ''} (Stock: ${p.cantidad || 0})`;
       opt.dataset.precio   = p.precioVenta  || 0;
       opt.dataset.cantidad = p.cantidad     || 0;
       opt.dataset.imagen   = p.imagen       || '';
@@ -89,36 +89,101 @@
 
   // ── Imagen del producto seleccionado ─────────────────────────
   function actualizarImagenVenta(url) {
-    let imgEl = document.getElementById('venta-producto-img');
+    const imgEl = document.getElementById('venta-producto-img');
     if (!imgEl) return;
-    if (url) {
-      imgEl.src = url;
-      imgEl.classList.remove('hidden');
+    if (url) { imgEl.src = url; imgEl.classList.remove('hidden'); }
+    else      { imgEl.src = ''; imgEl.classList.add('hidden'); }
+  }
+
+  // ── Pago dividido ─────────────────────────────────────────────
+  function actualizarZonaDeuda() {
+    const formaPago = document.getElementById('venta-forma-pago')?.value || '';
+    const zona      = document.getElementById('venta-deuda-zona');
+    const labelCliente = document.getElementById('venta-cliente-label');
+
+    if (formaPago === 'A pagar') {
+      // Todo en deuda: ocultar zona dividida, setear deuda = total
+      if (zona) zona.classList.add('hidden');
+      if (labelCliente) labelCliente.textContent = 'Cliente *';
+      syncDeudaTotal();
     } else {
-      imgEl.src = '';
-      imgEl.classList.add('hidden');
+      // Mostrar zona para dividir pago
+      if (zona) zona.classList.remove('hidden');
+      if (labelCliente) labelCliente.textContent = 'Cliente';
+      calcularPreview();
     }
+  }
+
+  function syncDeudaTotal() {
+    // Cuando forma de pago = "A pagar", deuda = total completo
+    const total = getTotal();
+    const pagadoEl = document.getElementById('venta-monto-pagado');
+    const deudaEl  = document.getElementById('venta-monto-deuda');
+    if (pagadoEl) pagadoEl.value = 0;
+    if (deudaEl)  deudaEl.value  = total.toFixed(2);
+    actualizarPreviewDeuda(total, 0);
+  }
+
+  function actualizarDeudaDesdeInput() {
+    const total       = getTotal();
+    const pagadoEl    = document.getElementById('venta-monto-pagado');
+    const deudaEl     = document.getElementById('venta-monto-deuda');
+    const pagado      = Math.min(Math.max(Number(pagadoEl?.value) || 0, 0), total);
+    const deuda       = parseFloat((total - pagado).toFixed(2));
+    if (deudaEl) deudaEl.value = deuda;
+    actualizarPreviewDeuda(deuda, pagado);
+  }
+
+  function actualizarPreviewDeuda(deuda, pagado) {
+    const deudaRow  = document.getElementById('prev-deuda-row');
+    const ahoraRow  = document.getElementById('prev-ahora-row');
+    const deudaEl   = document.getElementById('prev-deuda');
+    const ahoraEl   = document.getElementById('prev-ahora');
+
+    if (deuda > 0) {
+      if (deudaRow) deudaRow.style.display = '';
+      if (ahoraRow) ahoraRow.style.display = '';
+      if (deudaEl)  deudaEl.textContent    = Utils.formatMoney(deuda);
+      if (ahoraEl)  ahoraEl.textContent    = Utils.formatMoney(pagado);
+    } else {
+      if (deudaRow) deudaRow.style.display = 'none';
+      if (ahoraRow) ahoraRow.style.display = 'none';
+    }
+  }
+
+  function getTotal() {
+    const cantidad  = Number(document.getElementById('venta-cantidad')?.value)  || 0;
+    const precio    = Number(document.getElementById('venta-precio')?.value)    || 0;
+    const descuento = Number(document.getElementById('venta-descuento')?.value) || 0;
+    return parseFloat(((precio * cantidad) * (1 - descuento / 100)).toFixed(2));
   }
 
   // ── Preview de precio ─────────────────────────────────────────
   function calcularPreview() {
-    const cantidad   = Number(document.getElementById('venta-cantidad')?.value)   || 0;
-    const precio     = Number(document.getElementById('venta-precio')?.value)     || 0;
-    const descuento  = Number(document.getElementById('venta-descuento')?.value)  || 0;
+    const cantidad  = Number(document.getElementById('venta-cantidad')?.value)  || 0;
+    const precio    = Number(document.getElementById('venta-precio')?.value)    || 0;
+    const descuento = Number(document.getElementById('venta-descuento')?.value) || 0;
 
-    const subtotal   = precio * cantidad;
-    const descMonto  = subtotal * (descuento / 100);
-    const total      = subtotal - descMonto;
+    const subtotal  = precio * cantidad;
+    const descMonto = subtotal * (descuento / 100);
+    const total     = subtotal - descMonto;
 
     setText('prev-subtotal',  Utils.formatMoney(subtotal));
     setText('prev-descuento', '- ' + Utils.formatMoney(descMonto));
     setText('prev-total',     Utils.formatMoney(total));
+
+    const formaPago = document.getElementById('venta-forma-pago')?.value || '';
+    if (formaPago === 'A pagar') {
+      syncDeudaTotal();
+    } else {
+      actualizarDeudaDesdeInput();
+    }
   }
 
   // ── Historial de hoy ──────────────────────────────────────────
   function renderHistorialHoy(ventas) {
-    const tbody    = document.getElementById('tbody-ventas-hoy');
-    const totalEl  = document.getElementById('total-ventas-hoy');
+    const tbody   = document.getElementById('tbody-ventas-hoy');
+    const totalEl = document.getElementById('total-ventas-hoy');
     if (!tbody) return;
 
     const total = ventas.reduce((acc, v) => acc + (Number(v.precioFinal) || 0), 0);
@@ -129,44 +194,54 @@
       return;
     }
 
-    // Ordenar: más reciente primero
-    const sorted = [...ventas].sort((a, b) =>
-      (b.id || '').localeCompare(a.id || '')
-    );
+    const sorted = [...ventas].sort((a, b) => (b.idVenta || '').localeCompare(a.idVenta || ''));
 
-    tbody.innerHTML = sorted.map(v => `
-      <tr>
+    tbody.innerHTML = sorted.map(v => {
+      const tieneDeuda = (Number(v.montoDeuda) || 0) > 0;
+      return `<tr>
         <td>
           <div style="font-weight:500;">${Utils.esc(v.producto || '—')}</div>
-          <div style="font-size:var(--font-size-xs);color:var(--text-muted);">${Utils.esc(v.id || '')}</div>
+          <div style="font-size:var(--font-size-xs);color:var(--text-muted);">${Utils.esc(v.idVenta || '')}</div>
         </td>
         <td>${v.cantidad || 1}</td>
         <td class="monto-positivo">${Utils.formatMoney(v.precioFinal)}</td>
-        <td>${Utils.esc(v.formaPago || '—')}</td>
+        <td>
+          ${Utils.esc(v.formaPago || '—')}
+          ${tieneDeuda ? `<br/><span style="font-size:var(--font-size-xs);color:var(--danger);">Debe: ${Utils.formatMoney(v.montoDeuda)}</span>` : ''}
+        </td>
         <td>${Utils.esc(v.cliente || '—')}</td>
-      </tr>
-    `).join('');
+      </tr>`;
+    }).join('');
   }
 
   // ── Confirmar venta ───────────────────────────────────────────
   async function confirmarVenta(e) {
     e.preventDefault();
 
-    const productoId  = document.getElementById('venta-producto').value;
-    const cantidad    = Number(document.getElementById('venta-cantidad').value)   || 0;
-    const precio      = Number(document.getElementById('venta-precio').value)     || 0;
-    const descuento   = Number(document.getElementById('venta-descuento').value)  || 0;
-    const formaPago   = document.getElementById('venta-forma-pago').value;
-    const cliente     = document.getElementById('venta-cliente').value.trim();
-    const observ      = document.getElementById('venta-observaciones').value.trim();
+    const productoId = document.getElementById('venta-producto').value;
+    const cantidad   = Number(document.getElementById('venta-cantidad').value)   || 0;
+    const precio     = Number(document.getElementById('venta-precio').value)     || 0;
+    const descuento  = Number(document.getElementById('venta-descuento').value)  || 0;
+    const formaPago  = document.getElementById('venta-forma-pago').value;
+    const cliente    = document.getElementById('venta-cliente').value.trim();
+    const observ     = document.getElementById('venta-observaciones').value.trim();
+
+    const total      = getTotal();
+    const formaPagoEfectiva = formaPago === 'A pagar' ? 'A pagar' : formaPago;
+    const montoDeuda = formaPago === 'A pagar'
+      ? total
+      : Math.max(Number(document.getElementById('venta-monto-deuda')?.value) || 0, 0);
 
     // Validaciones
-    if (!productoId)  { UI.warning('Seleccioná un producto');    return; }
+    if (!productoId)  { UI.warning('Seleccioná un producto');         return; }
     if (cantidad < 1) { UI.warning('La cantidad debe ser mayor a 0'); return; }
     if (precio   < 1) { UI.warning('El precio debe ser mayor a 0');   return; }
-    if (!formaPago)   { UI.warning('Seleccioná forma de pago');   return; }
+    if (!formaPago)   { UI.warning('Seleccioná forma de pago');       return; }
+    if (montoDeuda > 0 && !cliente) {
+      UI.warning('El nombre del cliente es requerido cuando queda algo a pagar');
+      return;
+    }
 
-    // Verificar stock disponible
     const opt = document.querySelector(`#venta-producto option[value="${productoId}"]`);
     const stockDisp = Number(opt?.dataset.cantidad) || 0;
     if (cantidad > stockDisp) {
@@ -174,9 +249,14 @@
       return;
     }
 
+    const montoPagadoAhora = total - montoDeuda;
+    const subText = montoDeuda > 0
+      ? `Total: ${Utils.formatMoney(total)} · Paga ahora: ${Utils.formatMoney(montoPagadoAhora)} · A pagar: ${Utils.formatMoney(montoDeuda)}`
+      : `${Utils.formatMoney(total)} total`;
+
     const ok = await UI.confirm({
       message: '¿Confirmar venta?',
-      sub: `${Utils.formatMoney(precio)} × ${cantidad} — ${Utils.formatMoney(precio * cantidad * (1 - descuento / 100))} total`,
+      sub: subText,
       icon: '🛒',
       okText: 'Confirmar',
       okClass: 'btn-primary',
@@ -189,14 +269,24 @@
         cantidad,
         precioUnitario: precio,
         descuento,
-        formaPago,
+        formaPago: formaPagoEfectiva,
         cliente,
         observaciones: observ,
+        montoDeuda,
       });
 
-      UI.success('Venta registrada correctamente');
+      UI.success(montoDeuda > 0
+        ? `Venta registrada. Queda pendiente: ${Utils.formatMoney(montoDeuda)}`
+        : 'Venta registrada correctamente'
+      );
+
       document.getElementById('form-venta').reset();
       document.getElementById('venta-stock-info').innerHTML = '';
+      actualizarImagenVenta('');
+      // Reset zona deuda
+      const zona = document.getElementById('venta-deuda-zona');
+      if (zona) zona.classList.add('hidden');
+      actualizarPreviewDeuda(0, 0);
       calcularPreview();
       await cargar();
     } catch {}
@@ -214,10 +304,14 @@
     document.getElementById('venta-cantidad')?.addEventListener('input',  calcularPreview);
     document.getElementById('venta-precio')?.addEventListener('input',    calcularPreview);
     document.getElementById('venta-descuento')?.addEventListener('input', calcularPreview);
+    document.getElementById('venta-forma-pago')?.addEventListener('change', () => {
+      actualizarZonaDeuda();
+      calcularPreview();
+    });
+    document.getElementById('venta-monto-pagado')?.addEventListener('input', actualizarDeudaDesdeInput);
     document.getElementById('form-venta')?.addEventListener('submit', confirmarVenta);
   }
 
-  // ── Registro en el router ────────────────────────────────────
   App.register('ventas', cargar);
 
   if (document.readyState === 'loading') {

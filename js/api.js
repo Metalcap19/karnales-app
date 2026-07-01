@@ -68,7 +68,10 @@ const API = (() => {
   const getCaja      = (params)      => get('caja', params);
   const createCajaMovimiento = (body)=> post('caja', body);
 
-  const getMovimientos = (params)    => get('movimientos', params);
+  const getMovimientos  = (params)   => get('movimientos', params);
+
+  const getDeudores     = (params)   => get('deudores', params);
+  const cobrarDeuda     = (body)     => put('deudores', body);
 
   const getReportes  = ()            => get('reportes');
 
@@ -91,6 +94,7 @@ const API = (() => {
     getVentas, createVenta,
     getCaja, createCajaMovimiento,
     getMovimientos,
+    getDeudores, cobrarDeuda,
     getReportes,
     getExportar,
     getConfig, saveConfig,

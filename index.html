@@ -138,6 +138,10 @@
         <span class="menu-icon"><i data-lucide="shopping-cart"></i></span>
         Ventas
       </button>
+      <button class="menu-btn" data-screen="deudores">
+        <span class="menu-icon"><i data-lucide="user-x"></i></span>
+        Deudores
+      </button>
       <button class="menu-btn admin-only" data-screen="caja">
         <span class="menu-icon"><i data-lucide="landmark"></i></span>
         Caja
@@ -295,13 +299,28 @@
                 <option value="Efectivo">Efectivo</option>
                 <option value="Transferencia">Transferencia</option>
                 <option value="Tarjeta">Tarjeta</option>
+                <option value="A pagar">A pagar (todo en deuda)</option>
                 <option value="Otro">Otro</option>
               </select>
             </div>
           </div>
 
+          <!-- Pago dividido -->
+          <div id="venta-deuda-zona" class="hidden">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Paga ahora</label>
+                <input type="number" id="venta-monto-pagado" class="form-input" min="0" value="0" placeholder="0" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Queda a pagar</label>
+                <input type="number" id="venta-monto-deuda" class="form-input" min="0" value="0" readonly style="opacity:0.7;" />
+              </div>
+            </div>
+          </div>
+
           <div class="form-group">
-            <label class="form-label">Cliente</label>
+            <label class="form-label" id="venta-cliente-label">Cliente</label>
             <input type="text" id="venta-cliente" class="form-input" placeholder="Nombre del cliente (opcional)" />
           </div>
 
@@ -323,6 +342,14 @@
             <div class="venta-preview-total">
               <span>TOTAL</span>
               <span id="prev-total">$ 0</span>
+            </div>
+            <div class="venta-preview-row" id="prev-deuda-row" style="display:none;color:var(--danger);">
+              <span>A pagar después</span>
+              <span id="prev-deuda">$ 0</span>
+            </div>
+            <div class="venta-preview-row" id="prev-ahora-row" style="display:none;color:var(--success);">
+              <span>Paga ahora</span>
+              <span id="prev-ahora">$ 0</span>
             </div>
           </div>
 
@@ -689,6 +716,62 @@
           <button class="btn btn-secondary btn-sm" data-export="reportes" data-fmt="pdf"><i data-lucide="file"></i> PDF</button>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       DEUDORES
+  ═════════════════════════════════════════════════════════ -->
+  <section id="screen-deudores" class="screen">
+    <div class="screen-header">
+      <h2 class="screen-title">
+        <i data-lucide="user-x" class="icon"></i> Deudores
+      </h2>
+      <div style="display:flex;gap:var(--space-2);">
+        <button class="btn btn-secondary" id="btn-reporte-deudores">
+          <i data-lucide="file-text"></i> Reporte PDF
+        </button>
+        <select id="deudores-filtro-estado" class="form-select" style="width:auto;">
+          <option value="Pendiente">Solo pendientes</option>
+          <option value="">Todos</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- KPI deudores -->
+    <div class="stock-stats" style="margin-bottom:var(--space-6);">
+      <div class="kpi-card">
+        <div class="kpi-label">Total pendiente</div>
+        <div class="kpi-value" id="kpi-total-deuda">$ 0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Deudores activos</div>
+        <div class="kpi-value" id="kpi-cant-deudores">0</div>
+      </div>
+    </div>
+
+    <!-- Búsqueda -->
+    <div style="margin-bottom:var(--space-4);">
+      <input type="text" id="deudores-buscar" class="form-input" placeholder="Buscar por cliente..." style="max-width:320px;" />
+    </div>
+
+    <div class="table-wrapper">
+      <table id="tabla-deudores">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Producto</th>
+            <th>Monto</th>
+            <th>Vendedor</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-deudores">
+          <tr><td colspan="7" class="table-empty">Cargando...</td></tr>
+        </tbody>
+      </table>
     </div>
   </section>
 
@@ -1081,6 +1164,7 @@
 <script src="js/screens/reportes.js"></script>
 <script src="js/screens/exportar.js"></script>
 <script src="js/screens/configuracion.js"></script>
+<script src="js/screens/deudores.js"></script>
 
 </body>
 </html>

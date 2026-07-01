@@ -29,7 +29,13 @@ const App = (() => {
     // Mostrar/ocultar header
     const header = document.getElementById('app-header');
     const noHeader = ['portada', 'login'];
-    if (header) header.style.display = noHeader.includes(name) ? 'none' : '';
+    if (header) {
+      if (noHeader.includes(name)) {
+        header.classList.remove('visible');
+      } else {
+        header.classList.add('visible');
+      }
+    }
 
     // Re-renderizar íconos Lucide en la nueva pantalla
     UI.icons();

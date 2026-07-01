@@ -175,9 +175,14 @@
       <h2 class="screen-title">
         <i data-lucide="package" class="icon"></i> Stock
       </h2>
-      <button class="btn btn-primary admin-only" id="btn-nuevo-producto">
-        <i data-lucide="plus"></i> Nuevo Producto
-      </button>
+      <div style="display:flex;gap:var(--space-2);">
+        <button class="btn btn-secondary" id="btn-reporte-stock">
+          <i data-lucide="file-text"></i> Reporte PDF
+        </button>
+        <button class="btn btn-primary admin-only" id="btn-nuevo-producto">
+          <i data-lucide="plus"></i> Nuevo Producto
+        </button>
+      </div>
     </div>
 
     <!-- KPIs -->
@@ -225,12 +230,12 @@
           <tr>
             <th style="width:52px;"></th>
             <th data-col="nombre">Producto</th>
-            <th>Rubro</th>
-            <th>Cantidad</th>
+            <th data-col="rubro">Rubro</th>
+            <th data-col="cantidad">Cantidad</th>
             <th>P. Compra</th>
             <th>P. Venta</th>
             <th>Valor Stock</th>
-            <th>Estado</th>
+            <th data-col="talle">Talle</th>
             <th class="admin-only">Acciones</th>
           </tr>
         </thead>
@@ -871,16 +876,20 @@
         </div>
         <div class="form-grid">
           <div class="form-group">
+            <label class="form-label">Talle</label>
+            <input type="text" id="prod-talle" class="form-input" placeholder="Ej: 42, 38-39, XL" />
+          </div>
+          <div class="form-group">
             <label class="form-label">Cantidad</label>
             <input type="number" id="prod-cantidad" class="form-input" min="0" value="0" />
           </div>
-          <div class="form-group">
-            <label class="form-label">Activo</label>
-            <select id="prod-activo" class="form-select">
-              <option value="true">Sí</option>
-              <option value="false">No</option>
-            </select>
-          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Activo</label>
+          <select id="prod-activo" class="form-select">
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </select>
         </div>
         <div class="form-grid">
           <div class="form-group">
@@ -900,6 +909,54 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Modal: Reporte Stock PDF -->
+<div id="modal-reporte-stock" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-title">
+        <i data-lucide="file-text" class="icon"></i>
+        <span>Reporte de Stock</span>
+      </div>
+      <button class="modal-close" data-close="modal-reporte-stock"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:var(--space-4);">
+      <p style="color:var(--text-muted);font-size:var(--font-size-sm);">
+        Filtrá antes de generar. Dejá en blanco para incluir todo el stock.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Rubro</label>
+        <select id="rep-rubro" class="form-select">
+          <option value="">Todos los rubros</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Talle</label>
+        <input type="text" id="rep-talle" class="form-input" placeholder="Ej: 42  (dejar vacío = todos)" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+        <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;font-size:var(--font-size-sm);">
+          <input type="checkbox" id="rep-solo-stock" checked />
+          Solo productos con stock disponible
+        </label>
+        <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;font-size:var(--font-size-sm);">
+          <input type="checkbox" id="rep-con-fotos" checked />
+          Incluir fotos (si las hay)
+        </label>
+        <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;font-size:var(--font-size-sm);">
+          <input type="checkbox" id="rep-con-precios" />
+          Incluir precio de venta
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" data-close="modal-reporte-stock">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="btn-generar-reporte">
+        <i data-lucide="printer"></i> Generar PDF
+      </button>
+    </div>
   </div>
 </div>
 

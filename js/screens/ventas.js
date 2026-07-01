@@ -46,6 +46,7 @@
       opt.dataset.precio   = p.precioVenta  || 0;
       opt.dataset.cantidad = p.cantidad     || 0;
       opt.dataset.imagen   = p.imagen       || '';
+      opt.dataset.talle    = p.talle        || '';
       if ((Number(p.cantidad) || 0) === 0) opt.disabled = true;
       sel.appendChild(opt);
     });

@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Karnales — Sistema de Gestión</title>
+  <meta name="description" content="Sistema de gestión comercial Karnales" />
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/screens.css" />
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- SheetJS (exportar Excel) -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     FONDO PERMANENTE — nunca desaparece
+════════════════════════════════════════════════════════════ -->
+<div id="bg-image"></div>
+<div id="bg-overlay"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TOAST CONTAINER
+════════════════════════════════════════════════════════════ -->
+<div id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LOADER GLOBAL
+════════════════════════════════════════════════════════════ -->
+<div id="global-loader" class="hidden">
+  <div class="spinner"></div>
+  <span class="loader-text">Cargando...</span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     APP
+════════════════════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- ── Header (visible en pantallas internas) ───────────── -->
+  <header id="app-header">
+    <img src="assets/Fondo pag inicial.png" alt="Karnales" class="header-logo" id="header-logo" style="height:36px;object-fit:contain;" onerror="this.style.display='none'" />
+
+    <div class="header-user">
+      <div>
+        <div class="header-user-name" id="header-nombre">—</div>
+        <div class="header-user-role" id="header-rol">—</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="btn-menu-principal" title="Menú principal">
+        <i data-lucide="grid-3x3"></i>
+      </button>
+      <button class="btn btn-ghost btn-sm" id="btn-logout" title="Cerrar sesión">
+        <i data-lucide="log-out"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════════════════════════
+       PORTADA
+  ═════════════════════════════════════════════════════════ -->
+  <section id="screen-portada" class="screen active">
+    <img src="assets/Fondo pag inicial.png" alt="Karnales" class="portada-logo" onerror="this.style.display='none'" />
+    <div>
+      <h1 class="portada-title">KARNALES</h1>
+      <p class="portada-subtitle">Tienda Online</p>
+    </div>
+    <button class="portada-btn" id="btn-ir-login">Ingresar</button>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       LOGIN
+  ═════════════════════════════════════════════════════════ -->
+  <section id="screen-login" class="screen">
+    <div class="login-box">
+      <h2 class="login-title">Bienvenido a <span>Karnales</span></h2>
+
+      <div class="login-error" id="login-error"></div>
+
+      <form class="login-form" id="form-login" autocomplete="on">
+        <div class="form-group">
+          <label class="form-label" for="login-usuario">Usuario</label>
+          <input
+            type="text"
+            id="login-usuario"
+            class="form-input"
+            placeholder="Ingresá tu usuario"
+            autocomplete="username"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="login-contrasena">Contraseña</label>
+          <input
+            type="password"
+            id="login-contrasena"
+            class="form-input"
+            placeholder="Ingresá tu contraseña"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+        <label class="login-remember">
+          <input type="checkbox" id="login-recordar" />
+          Recordar usuario
+        </label>
+        <button type="submit" class="btn btn-primary btn-lg login-submit" id="btn-login">
+          <i data-lucide="log-in"></i>
+          Ingresar
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       MENÚ PRINCIPAL
+  ═════════════════════════════════════════════════════════ -->
+  <section id="screen-menu" class="screen">
+    <div class="menu-header">
+      <p class="menu-welcome">Hola, <span id="menu-nombre">—</span></p>
+    </div>
+
+    <div class="menu-grid" id="menu-grid">
+      <button class="menu-btn" data-screen="stock">
+        <span class="menu-icon"><i data-lucide="package"></i></span>
+        Stock
+      </button>
+      <button class="menu-btn" data-screen="ventas">
+        <span class="menu-icon"><i data-lucide="shopping-cart"></i></span>
+        Ventas
+      </button>
+      <button class="menu-btn admin-only" data-screen="caja">
+        <span class="menu-icon"><i data-lucide="landmark"></i></span>
+        Caja
+      </button>
+      <button class="menu-btn admin-only" data-screen="movimientos">
+        <span class="menu-icon"><i data-lucide="arrow-left-right"></i></span>
+        Movimientos
+      </button>
+      <button class="menu-btn admin-only" data-screen="reportes">
+        <span class="menu-icon"><i data-lucide="bar-chart-2"></i></span>
+        Reportes
+      </button>
+      <button class="menu-btn admin-only" data-screen="exportar">
+        <span class="menu-icon"><i data-lucide="download"></i></span>
+        Exportar
+      </button>
+      <button class="menu-btn admin-only" data-screen="configuracion">
+        <span class="menu-icon"><i data-lucide="settings"></i></span>
+        Configuración
+      </button>
+    </div>
+
+    <div class="menu-footer-btns">
+      <button class="btn btn-ghost" id="btn-logout-menu">
+        <i data-lucide="log-out"></i> Cerrar sesión
+      </button>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       STOCK
+  ═════════════════════════════════════════════════════════ -->
+  <section id="screen-stock" class="screen">
+    <div class="screen-header">
+      <h2 class="screen-title">
+        <i data-lucide="package" class="icon"></i> Stock
+      </h2>
+      <button class="btn btn-primary admin-only" id="btn-nuevo-producto">
+        <i data-lucide="plus"></i> Nuevo Producto
+      </button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="stock-stats" id="stock-stats">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Productos</div>
+        <div class="kpi-value" id="kpi-total-productos">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Valor en Stock</div>
+        <div class="kpi-value gold" id="kpi-valor-stock">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Sin Stock</div>
+        <div class="kpi-value red" id="kpi-sin-stock">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Stock Bajo</div>
+        <div class="kpi-value" style="color:var(--warning)" id="kpi-stock-bajo">—</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="stock-toolbar">
+      <div class="search-box">
+        <i data-lucide="search" class="search-icon" style="width:16px;height:16px;"></i>
+        <input type="text" id="stock-buscar" class="form-input" placeholder="Buscar producto..." />
+      </div>
+      <div class="stock-filters">
+        <select id="stock-filtro-rubro" class="form-select">
+          <option value="">Todos los rubros</option>
+        </select>
+        <select id="stock-filtro-estado" class="form-select">
+          <option value="activos">Solo activos</option>
+          <option value="todos">Todos</option>
+          <option value="inactivos">Inactivos</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-wrapper">
+      <table id="tabla-stock">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Rubro</th>
+            <th>Cantidad</th>
+            <th>P. Compra</th>
+            <th>P. Venta</th>
+            <th>Valor Stock</th>
+            <th>Estado</th>
+            <th class="admin-only">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-stock">
+          <tr><td colspan="8" class="table-empty">Cargando productos...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       VENTAS
+  ═════════════════════════════════════════════════════════ -->
+  <section id="screen-ventas" class="screen">
+    <div class="screen-header">
+      <h2 class="screen-title">
+        <i data-lucide="shopping-cart" class="icon"></i> Ventas
+      </h2>
+    </div>
+
+    <div class="ventas-layout">
+      <!-- Formulario nueva venta -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i data-lucide="plus-circle" class="icon"></i> Nueva Venta</div>
+        </div>
+        <form id="form-venta" style="display:flex;flex-direction:column;gap:var(--space-4);padding-top:var(--space-4);">
+          <div class="form-group">
+            <label class="form-label">Producto *</label>
+            <select id="venta-producto" class="form-select" required>
+              <option value="">— Seleccioná un producto —</option>
+            </select>
+            <div class="stock-disponible" id="venta-stock-info"></div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Cantidad *</label>
+              <input type="number" id="venta-cantidad" class="form-input" min="1" value="1" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Precio Unitario *</label>
+              <input type="number" id="venta-precio" class="form-input" min="0" placeholder="$" required />
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Descuento %</label>
+              <input type="number" id="venta-descuento" class="form-input" min="0" max="100" value="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Forma de Pago *</label>
+              <select id="venta-forma-pago" class="form-select" required>
+                <option value="">— Seleccioná —</option>
+                <option value="Efectivo">Efectivo</option>
+                <option value="Transferencia">Transferencia</option>
+                <option value="Tarjeta">Tarjeta</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Cliente</label>
+            <input type="text" id="venta-cliente" class="form-input" placeholder="Nombre del cliente (opcional)" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Observaciones</label>
+            <textarea id="venta-observaciones" class="form-textarea" rows="2" placeholder="Notas adicionales..."></textarea>
+          </div>
+
+          <!-- Preview precio -->
+          <div class="venta-preview" id="venta-preview">
+            <div class="venta-preview-row">
+              <span>Subtotal</span>
+              <span id="prev-subtotal">$ 0</span>
+            </div>
+            <div class="venta-preview-row">
+              <span>Descuento</span>
+              <span id="prev-descuento" style="color:var(--danger);">- $ 0</span>
+            </div>
+            <div class="venta-preview-total">
+              <span>TOTAL</span>
+              <span id="prev-total">$ 0</span>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg w-full" id="btn-confirmar-venta">
+            <i data-lucide="check-circle"></i> Confirmar Venta
+          </button>
+        </form>
+      </div>
+
+      <!-- Historial del día -->
+      <div class="ventas-historial">
+        <div class="card-header" style="margin-bottom:var(--space-4);">
+          <div class="card-title"><i data-lucide="clock" class="icon"></i> Ventas de Hoy</div>
+          <div class="kpi-value gold" id="total-ventas-hoy">$ 0</div>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Cant.</th>
+                <th>Total</th>
+                <th>Pago</th>
+                <th>Cliente</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-ventas-hoy">
+              <tr><td colspan="5" class="table-empty">Sin ventas hoy</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       CAJA
+  ═════════════════════════════════════════════════════════ -->
+  <section id="screen-caja" class="screen">
+    <div class="screen-header">
+      <h2 class="screen-title">
+        <i data-lucide="landmark" class="icon"></i> Caja
+      </h2>
+    </div>
+
+    <div class="caja-layout">
+      <!-- Panel izquierdo: saldo + form -->
+      <div style="display:flex;flex-direction:column;gap:var(--space-5);">
+        <div class="saldo-card">
+          <div class="saldo-label">Saldo Actual</div>
+          <div class="saldo-valor" id="caja-saldo">$ 0</div>
+          <div class="saldo-resumen">
+            <div class="saldo-resumen-item">
+              <div class="saldo-resumen-label">Ingresos del mes</div>
+              <div class="saldo-resumen-valor monto-positivo" id="caja-ingresos-mes">$ 0</div>
+            </div>
+            <div class="saldo-resumen-item">
+              <div class="saldo-resumen-label">Egresos del mes</div>
+              <div class="saldo-resumen-valor monto-negativo" id="caja-egresos-mes">$ 0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulario movimiento -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i data-lucide="plus-circle" class="icon"></i> Registrar Movimiento</div>
+          </div>
+          <form id="form-caja" style="display:flex;flex-direction:column;gap:var(--space-4);padding-top:var(--space-4);">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Tipo *</label>
+                <select id="caja-tipo" class="form-select" required>
+                  <option value="">— Seleccioná —</option>
+                  <option value="Ingreso">Ingreso</option>
+                  <option value="Egreso">Egreso</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Concepto *</label>
+                <select id="caja-concepto" class="form-select" required>
+                  <option value="">— Seleccioná —</option>
+                  <option value="Retiro de ganancias">Retiro de ganancias</option>
+                  <option value="Pago de sueldo">Pago de sueldo</option>
+                  <option value="Compra de mercadería">Compra de mercadería</option>
+                  <option value="Otro">Otro</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Monto *</label>
+              <input type="number" id="caja-monto" class="form-input" min="0" placeholder="$" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Observaciones</label>
+              <textarea id="caja-observaciones" class="form-textarea" rows="2" placeholder="Notas adicionales..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-full">
+              <i data-lucide="save"></i> Registrar
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Panel derecho: últimos movimientos -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i data-lucide="list" class="icon"></i> Últimos Movimientos</div>
+        </div>
+        <div class="table-wrapper" style="margin-top:var(--space-4);">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Concepto</th>
+                <th>Monto</th>
+                <th>Usuario</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-caja-recientes">
+              <tr><td colspan="4" class="table-empty">Sin movimientos</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       MOVIMIENTOS
+  ═════════════════════════════════════════════════════════ -->
+  <section id="screen-movimientos" class="screen">
+    <div class="screen-header">
+      <h2 class="screen-title">
+        <i data-lucide="arrow-left-right" class="icon"></i> Movimientos
+      </h2>
+    </div>
+
+    <!-- Filtros -->
+    <div class="movimientos-filters">
+      <div class="form-group">
+        <label class="form-label">Desde</label>
+        <input type="date" id="mov-desde" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Hasta</label>
+        <input type="date" id="mov-hasta" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select id="mov-tipo" class="form-select">
+          <option value="">Todos</option>
+          <option value="Ingreso">Ingresos</option>
+          <option value="Egreso">Egresos</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Usuario</label>
+        <select id="mov-usuario" class="form-select">
+          <option value="">Todos</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Buscar</label>
+        <div class="search-box">
+          <i data-lucide="search" class="search-icon" style="width:16px;height:16px;"></i>
+          <input type="text" id="mov-buscar" class="form-input" placeholder="Concepto, referencia..." />
+        </div>
+      </div>
+      <div class="form-group" style="justify-content:flex-end;display:flex;align-items:flex-end;">
+        <button class="btn btn-secondary" id="btn-filtrar-mov">
+          <i data-lucide="filter"></i> Filtrar
+        </button>
+      </div>
+    </div>
+
+    <!-- Resumen del período -->
+    <div class="movimientos-resumen">
+      <div class="kpi-card">
+        <div class="kpi-label">Ingresos del período</div>
+        <div class="kpi-value green" id="mov-total-ingresos">$ 0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Egresos del período</div>
+        <div class="kpi-value red" id="mov-total-egresos">$ 0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Registros encontrados</div>
+        <div class="kpi-value" id="mov-total-registros">0</div>
+      </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Concepto</th>
+            <th>Monto</th>
+            <th>Usuario</th>
+            <th>Observaciones</th>
+            <th>Referencia</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-movimientos">
+          <tr><td colspan="7" class="table-empty">Aplicá filtros para ver movimientos</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="pagination" id="mov-paginacion"></div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       REPORTES
+  ═════════════════════════════════════════════════════════ -->
+  <section id="screen-reportes" class="screen">
+    <div class="screen-header">
+      <h2 class="screen-title">
+        <i data-lucide="bar-chart-2" class="icon"></i> Reportes
+      </h2>
+      <button class="btn btn-secondary" id="btn-actualizar-reportes">
+        <i data-lucide="refresh-cw"></i> Actualizar
+      </button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="reportes-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Costo Total del Stock</div>
+        <div class="kpi-value" id="rep-costo-stock">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Valor de Venta del Stock</div>
+        <div class="kpi-value gold" id="rep-valor-stock">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Ganancia Potencial</div>
+        <div class="kpi-value green" id="rep-ganancia">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Ventas Hoy</div>
+        <div class="kpi-value" id="rep-ventas-hoy">—</div>
+        <div class="kpi-sub" id="rep-ventas-hoy-cant">— operaciones</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Ventas del Mes</div>
+        <div class="kpi-value gold" id="rep-ventas-mes">—</div>
+        <div class="kpi-sub" id="rep-ventas-mes-cant">— operaciones</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Saldo en Caja</div>
+        <div class="kpi-value green" id="rep-saldo">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Ingresos del Mes</div>
+        <div class="kpi-value green" id="rep-ingresos-mes">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Egresos del Mes</div>
+        <div class="kpi-value red" id="rep-egresos-mes">—</div>
+      </div>
+    </div>
+
+    <!-- Alertas de stock -->
+    <div class="reportes-alertas">
+      <div class="alerta-lista">
+        <div class="alerta-lista-title">
+          <i data-lucide="alert-circle" style="width:14px;color:var(--danger);"></i>
+          Sin Stock
+        </div>
+        <div id="lista-sin-stock"><p class="text-muted text-sm">Sin alertas</p></div>
+      </div>
+      <div class="alerta-lista">
+        <div class="alerta-lista-title">
+          <i data-lucide="alert-triangle" style="width:14px;color:var(--warning);"></i>
+          Stock Bajo
+        </div>
+        <div id="lista-stock-bajo"><p class="text-muted text-sm">Sin alertas</p></div>
+      </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="graficos-grid">
+      <div class="grafico-card">
+        <div class="grafico-title">Ventas — Últimos 30 días</div>
+        <canvas id="chart-ventas-dia"></canvas>
+      </div>
+      <div class="grafico-card">
+        <div class="grafico-title">Top 10 Productos más Vendidos</div>
+        <canvas id="chart-top-productos"></canvas>
+      </div>
+      <div class="grafico-card">
+        <div class="grafico-title">Ventas por Rubro</div>
+        <canvas id="chart-rubros"></canvas>
+      </div>
+      <div class="grafico-card">
+        <div class="grafico-title">Ingresos vs Egresos (6 meses)</div>
+        <canvas id="chart-ing-egr"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       EXPORTAR
+  ═════════════════════════════════════════════════════════ -->
+  <section id="screen-exportar" class="screen">
+    <div class="screen-header">
+      <h2 class="screen-title">
+        <i data-lucide="download" class="icon"></i> Exportar
+      </h2>
+    </div>
+
+    <div class="exportar-grid">
+      <div class="exportar-card">
+        <div class="exportar-card-title"><i data-lucide="package" style="width:20px;color:var(--gold);"></i> Stock</div>
+        <div class="exportar-card-desc">Todos los productos con precios y valor en stock.</div>
+        <div class="exportar-btns">
+          <button class="btn btn-secondary btn-sm" data-export="stock" data-fmt="xlsx"><i data-lucide="file-spreadsheet"></i> Excel</button>
+          <button class="btn btn-secondary btn-sm" data-export="stock" data-fmt="csv"><i data-lucide="file-text"></i> CSV</button>
+          <button class="btn btn-secondary btn-sm" data-export="stock" data-fmt="pdf"><i data-lucide="file"></i> PDF</button>
+        </div>
+      </div>
+
+      <div class="exportar-card">
+        <div class="exportar-card-title"><i data-lucide="shopping-cart" style="width:20px;color:var(--gold);"></i> Ventas</div>
+        <div class="exportar-card-desc">Historial completo de ventas con filtros de fecha.</div>
+        <div class="exportar-btns">
+          <button class="btn btn-secondary btn-sm" data-export="ventas" data-fmt="xlsx"><i data-lucide="file-spreadsheet"></i> Excel</button>
+          <button class="btn btn-secondary btn-sm" data-export="ventas" data-fmt="csv"><i data-lucide="file-text"></i> CSV</button>
+          <button class="btn btn-secondary btn-sm" data-export="ventas" data-fmt="pdf"><i data-lucide="file"></i> PDF</button>
+        </div>
+      </div>
+
+      <div class="exportar-card">
+        <div class="exportar-card-title"><i data-lucide="landmark" style="width:20px;color:var(--gold);"></i> Caja</div>
+        <div class="exportar-card-desc">Todos los movimientos de caja con saldo histórico.</div>
+        <div class="exportar-btns">
+          <button class="btn btn-secondary btn-sm" data-export="caja" data-fmt="xlsx"><i data-lucide="file-spreadsheet"></i> Excel</button>
+          <button class="btn btn-secondary btn-sm" data-export="caja" data-fmt="csv"><i data-lucide="file-text"></i> CSV</button>
+          <button class="btn btn-secondary btn-sm" data-export="caja" data-fmt="pdf"><i data-lucide="file"></i> PDF</button>
+        </div>
+      </div>
+
+      <div class="exportar-card">
+        <div class="exportar-card-title"><i data-lucide="arrow-left-right" style="width:20px;color:var(--gold);"></i> Movimientos</div>
+        <div class="exportar-card-desc">Cronología completa de ingresos y egresos.</div>
+        <div class="exportar-btns">
+          <button class="btn btn-secondary btn-sm" data-export="movimientos" data-fmt="xlsx"><i data-lucide="file-spreadsheet"></i> Excel</button>
+          <button class="btn btn-secondary btn-sm" data-export="movimientos" data-fmt="csv"><i data-lucide="file-text"></i> CSV</button>
+          <button class="btn btn-secondary btn-sm" data-export="movimientos" data-fmt="pdf"><i data-lucide="file"></i> PDF</button>
+        </div>
+      </div>
+
+      <div class="exportar-card">
+        <div class="exportar-card-title"><i data-lucide="bar-chart-2" style="width:20px;color:var(--gold);"></i> Reporte General</div>
+        <div class="exportar-card-desc">Resumen de todos los KPIs del negocio.</div>
+        <div class="exportar-btns">
+          <button class="btn btn-secondary btn-sm" data-export="reportes" data-fmt="xlsx"><i data-lucide="file-spreadsheet"></i> Excel</button>
+          <button class="btn btn-secondary btn-sm" data-export="reportes" data-fmt="csv"><i data-lucide="file-text"></i> CSV</button>
+          <button class="btn btn-secondary btn-sm" data-export="reportes" data-fmt="pdf"><i data-lucide="file"></i> PDF</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       CONFIGURACIÓN
+  ═════════════════════════════════════════════════════════ -->
+  <section id="screen-configuracion" class="screen">
+    <div class="screen-header">
+      <h2 class="screen-title">
+        <i data-lucide="settings" class="icon"></i> Configuración
+      </h2>
+    </div>
+
+    <div class="config-tabs">
+      <button class="config-tab active" data-tab="usuarios">Usuarios</button>
+      <button class="config-tab" data-tab="rubros">Rubros</button>
+      <button class="config-tab" data-tab="apariencia">Apariencia</button>
+      <button class="config-tab" data-tab="password">Contraseña</button>
+    </div>
+
+    <!-- Tab: Usuarios -->
+    <div class="config-panel active" id="tab-usuarios">
+      <div class="screen-header" style="margin-bottom:var(--space-4);">
+        <div class="config-section-title">Gestión de Usuarios</div>
+        <button class="btn btn-primary btn-sm" id="btn-nuevo-usuario">
+          <i data-lucide="user-plus"></i> Nuevo Usuario
+        </button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Nombre</th>
+              <th>Rol</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-usuarios">
+            <tr><td colspan="5" class="table-empty">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab: Rubros -->
+    <div class="config-panel" id="tab-rubros">
+      <div class="screen-header" style="margin-bottom:var(--space-4);">
+        <div class="config-section-title">Gestión de Rubros</div>
+        <button class="btn btn-primary btn-sm" id="btn-nuevo-rubro">
+          <i data-lucide="tag"></i> Nuevo Rubro
+        </button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-rubros">
+            <tr><td colspan="4" class="table-empty">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab: Apariencia -->
+    <div class="config-panel" id="tab-apariencia">
+      <div class="config-section-title" style="margin-bottom:var(--space-5);">Datos del Negocio</div>
+      <form id="form-apariencia" style="display:flex;flex-direction:column;gap:var(--space-4);max-width:500px;">
+        <div class="form-group">
+          <label class="form-label">Nombre del Negocio</label>
+          <input type="text" id="cfg-nombre" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subtítulo</label>
+          <input type="text" id="cfg-subtitulo" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dirección</label>
+          <input type="text" id="cfg-direccion" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input type="text" id="cfg-telefono" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Color de Acento</label>
+          <div class="color-picker-row">
+            <input type="color" id="cfg-color" value="#C9A84C" />
+            <input type="text" id="cfg-color-hex" class="form-input" value="#C9A84C" style="max-width:120px;" />
+            <span class="form-hint">El color se aplica al reiniciar la app</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stock mínimo para alerta</label>
+          <input type="number" id="cfg-stock-min" class="form-input" min="1" style="max-width:120px;" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="align-self:flex-start;">
+          <i data-lucide="save"></i> Guardar Cambios
+        </button>
+      </form>
+    </div>
+
+    <!-- Tab: Contraseña -->
+    <div class="config-panel" id="tab-password">
+      <div class="config-section-title" style="margin-bottom:var(--space-5);">Cambiar Mi Contraseña</div>
+      <form id="form-password" style="display:flex;flex-direction:column;gap:var(--space-4);max-width:400px;">
+        <div class="form-group">
+          <label class="form-label">Contraseña Actual</label>
+          <input type="password" id="pwd-actual" class="form-input" autocomplete="current-password" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contraseña Nueva</label>
+          <input type="password" id="pwd-nueva" class="form-input" autocomplete="new-password" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Repetir Contraseña Nueva</label>
+          <input type="password" id="pwd-repetir" class="form-input" autocomplete="new-password" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="align-self:flex-start;">
+          <i data-lucide="lock"></i> Cambiar Contraseña
+        </button>
+      </form>
+    </div>
+  </section>
+
+</div><!-- /app -->
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODALES
+════════════════════════════════════════════════════════════ -->
+
+<!-- Modal: Producto (agregar/editar) -->
+<div id="modal-producto" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">
+        <i data-lucide="package" class="icon"></i>
+        <span id="modal-producto-titulo">Nuevo Producto</span>
+      </div>
+      <button class="modal-close" data-close="modal-producto"><i data-lucide="x"></i></button>
+    </div>
+    <form id="form-producto">
+      <div class="modal-body">
+        <input type="hidden" id="prod-id" />
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input type="text" id="prod-nombre" class="form-input" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rubro *</label>
+          <select id="prod-rubro" class="form-select" required>
+            <option value="">— Seleccioná —</option>
+          </select>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Cantidad</label>
+            <input type="number" id="prod-cantidad" class="form-input" min="0" value="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Activo</label>
+            <select id="prod-activo" class="form-select">
+              <option value="true">Sí</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Precio Compra</label>
+            <input type="number" id="prod-precio-compra" class="form-input" min="0" value="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Precio Venta</label>
+            <input type="number" id="prod-precio-venta" class="form-input" min="0" value="0" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-close="modal-producto">Cancelar</button>
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="save"></i> Guardar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Usuario (agregar/editar) -->
+<div id="modal-usuario" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">
+        <i data-lucide="user" class="icon"></i>
+        <span id="modal-usuario-titulo">Nuevo Usuario</span>
+      </div>
+      <button class="modal-close" data-close="modal-usuario"><i data-lucide="x"></i></button>
+    </div>
+    <form id="form-usuario">
+      <div class="modal-body">
+        <input type="hidden" id="usr-modo" value="crear" />
+        <div class="form-group">
+          <label class="form-label">Usuario *</label>
+          <input type="text" id="usr-usuario" class="form-input" autocomplete="off" required />
+          <div class="form-hint">Solo minúsculas, sin espacios</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre completo *</label>
+          <input type="text" id="usr-nombre" class="form-input" required />
+        </div>
+        <div class="form-group" id="usr-pwd-group">
+          <label class="form-label">Contraseña *</label>
+          <input type="password" id="usr-contrasena" class="form-input" autocomplete="new-password" />
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Rol *</label>
+            <select id="usr-rol" class="form-select" required>
+              <option value="vendedor">Vendedor</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Estado</label>
+            <select id="usr-activo" class="form-select">
+              <option value="true">Activo</option>
+              <option value="false">Inactivo</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-close="modal-usuario">Cancelar</button>
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="save"></i> Guardar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Rubro -->
+<div id="modal-rubro" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">
+        <i data-lucide="tag" class="icon"></i>
+        <span id="modal-rubro-titulo">Nuevo Rubro</span>
+      </div>
+      <button class="modal-close" data-close="modal-rubro"><i data-lucide="x"></i></button>
+    </div>
+    <form id="form-rubro">
+      <div class="modal-body">
+        <input type="hidden" id="rub-id" />
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input type="text" id="rub-nombre" class="form-input" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select id="rub-activo" class="form-select">
+            <option value="true">Activo</option>
+            <option value="false">Inactivo</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-close="modal-rubro">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Confirmación genérica -->
+<div id="modal-confirm" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-body" style="text-align:center;padding:var(--space-8);">
+      <div style="font-size:2.5rem;margin-bottom:var(--space-4);" id="confirm-icon">⚠️</div>
+      <div style="font-size:var(--font-size-lg);font-weight:600;color:var(--text-primary);margin-bottom:var(--space-2);" id="confirm-message">¿Estás seguro?</div>
+      <div style="color:var(--text-secondary);font-size:var(--font-size-sm);" id="confirm-sub"></div>
+    </div>
+    <div class="modal-footer" style="justify-content:center;gap:var(--space-4);">
+      <button class="btn btn-ghost" id="confirm-cancel">Cancelar</button>
+      <button class="btn btn-danger" id="confirm-ok">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════════════ -->
+<div id="footer">Creado por SmartCAP</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     JAVASCRIPT — orden importa: utils → ui → auth → api → screens → app
+════════════════════════════════════════════════════════════ -->
+<script src="js/utils.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/screens/stock.js"></script>
+<script src="js/screens/ventas.js"></script>
+<script src="js/screens/caja.js"></script>
+<script src="js/screens/movimientos.js"></script>
+<script src="js/screens/reportes.js"></script>
+<script src="js/screens/exportar.js"></script>
+<script src="js/screens/configuracion.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

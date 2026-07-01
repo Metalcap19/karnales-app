@@ -45,6 +45,7 @@
       opt.textContent = `${p.nombre} (Stock: ${p.cantidad || 0})`;
       opt.dataset.precio   = p.precioVenta  || 0;
       opt.dataset.cantidad = p.cantidad     || 0;
+      opt.dataset.imagen   = p.imagen       || '';
       if ((Number(p.cantidad) || 0) === 0) opt.disabled = true;
       sel.appendChild(opt);
     });
@@ -62,6 +63,7 @@
     if (!opt || !opt.value) {
       infoEl.innerHTML = '';
       if (precioEl) precioEl.value = '';
+      actualizarImagenVenta('');
       calcularPreview();
       return;
     }
@@ -70,6 +72,7 @@
     const precio   = Number(opt.dataset.precio)   || 0;
 
     if (precioEl) precioEl.value = precio;
+    actualizarImagenVenta(opt.dataset.imagen || '');
 
     const STOCK_MIN = 3;
     if (cantidad === 0) {
@@ -81,6 +84,19 @@
     }
 
     calcularPreview();
+  }
+
+  // ── Imagen del producto seleccionado ─────────────────────────
+  function actualizarImagenVenta(url) {
+    let imgEl = document.getElementById('venta-producto-img');
+    if (!imgEl) return;
+    if (url) {
+      imgEl.src = url;
+      imgEl.classList.remove('hidden');
+    } else {
+      imgEl.src = '';
+      imgEl.classList.add('hidden');
+    }
   }
 
   // ── Preview de precio ─────────────────────────────────────────

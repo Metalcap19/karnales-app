@@ -6,10 +6,17 @@
 
   const STOCK_MIN_DEFAULT = 3;
 
+  // Cloudinary config (upload directo desde el frontend)
+  const CLOUD_NAME    = 'nfnmeo2v';
+  const UPLOAD_PRESET = 'karnales-productos';
+
   let todosLosProductos = [];
   let rubrosCache       = [];
   let sortCol           = 'nombre';
   let sortAsc           = true;
+
+  // URL de imagen pendiente (seteada al subir, antes de guardar el form)
+  let imagenPendienteURL = '';
 
   // ── Carga principal ─────────────────────────────────────────
   async function cargar() {
@@ -92,7 +99,7 @@
     const isAdmin = Auth.isAdmin();
 
     if (lista.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" class="table-empty">Sin productos que coincidan</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" class="table-empty">Sin productos que coincidan</td></tr>`;
       return;
     }
 
@@ -102,8 +109,12 @@
       const pVenta     = Number(p.precioVenta)  || 0;
       const valorStock = cantidad * pVenta;
       const activo     = p.activo === true || p.activo === 'true' || p.activo === 'TRUE';
+      const thumb      = p.imagen
+        ? `<img src="${Utils.esc(p.imagen)}" alt="" class="imagen-thumb" loading="lazy" />`
+        : `<span style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:var(--radius-md);background:var(--bg-raised);color:var(--text-muted);"><i data-lucide="image-off" style="width:16px;"></i></span>`;
 
       return `<tr>
+        <td>${thumb}</td>
         <td>
           <div style="font-weight:500;">${Utils.esc(p.nombre)}</div>
           <div style="font-size:var(--font-size-xs);color:var(--text-muted);">${Utils.esc(p.id)}</div>
@@ -134,8 +145,58 @@
     UI.icons();
   }
 
+  // ── Cloudinary upload ────────────────────────────────────────
+  async function subirImagen(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', UPLOAD_PRESET);
+
+    const progreso = document.getElementById('prod-imagen-progreso');
+    if (progreso) progreso.classList.remove('hidden');
+
+    try {
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+        { method: 'POST', body: formData }
+      );
+      if (!res.ok) throw new Error('Error subiendo imagen');
+      const data = await res.json();
+      return data.secure_url;
+    } finally {
+      if (progreso) progreso.classList.add('hidden');
+    }
+  }
+
+  function mostrarPreviewImagen(url) {
+    const preview     = document.getElementById('prod-imagen-preview');
+    const placeholder = document.getElementById('prod-imagen-placeholder');
+    const btnQuitar   = document.getElementById('btn-quitar-imagen');
+
+    if (url) {
+      if (preview)     { preview.src = url; preview.classList.remove('hidden'); }
+      if (placeholder) placeholder.classList.add('hidden');
+      if (btnQuitar)   btnQuitar.classList.remove('hidden');
+    } else {
+      if (preview)     { preview.src = ''; preview.classList.add('hidden'); }
+      if (placeholder) placeholder.classList.remove('hidden');
+      if (btnQuitar)   btnQuitar.classList.add('hidden');
+    }
+  }
+
+  function limpiarImagen() {
+    imagenPendienteURL = '';
+    const input = document.getElementById('prod-imagen');
+    if (input) input.value = '';
+    const fileInput = document.getElementById('prod-imagen-file');
+    if (fileInput) fileInput.value = '';
+    mostrarPreviewImagen('');
+  }
+
   // ── Modal nuevo/editar ───────────────────────────────────────
   async function abrirModalProducto(id = null) {
+    // Reset imagen
+    imagenPendienteURL = '';
+
     // Poblar rubros en el select del modal
     const selRubro = document.getElementById('prod-rubro');
     selRubro.innerHTML = '<option value="">— Seleccioná —</option>';
@@ -156,17 +217,21 @@
       if (!prod) return;
       document.getElementById('modal-producto-titulo').textContent = 'Editar Producto';
       document.getElementById('prod-id').value            = prod.id;
+      document.getElementById('prod-imagen').value        = prod.imagen || '';
       document.getElementById('prod-nombre').value        = prod.nombre || '';
       document.getElementById('prod-rubro').value         = prod.rubro  || '';
       document.getElementById('prod-cantidad').value      = prod.cantidad || 0;
       document.getElementById('prod-precio-compra').value = prod.precioCompra || 0;
       document.getElementById('prod-precio-venta').value  = prod.precioVenta  || 0;
       document.getElementById('prod-activo').value        = (prod.activo === true || prod.activo === 'true' || prod.activo === 'TRUE') ? 'true' : 'false';
+      mostrarPreviewImagen(prod.imagen || '');
     } else {
       // Modo nuevo
       document.getElementById('modal-producto-titulo').textContent = 'Nuevo Producto';
       document.getElementById('form-producto').reset();
-      document.getElementById('prod-id').value = '';
+      document.getElementById('prod-id').value     = '';
+      document.getElementById('prod-imagen').value = '';
+      mostrarPreviewImagen('');
     }
 
     UI.openModal('modal-producto');
@@ -174,7 +239,9 @@
 
   async function guardarProducto(e) {
     e.preventDefault();
-    const id = document.getElementById('prod-id').value;
+    const id     = document.getElementById('prod-id').value;
+    const imagen = document.getElementById('prod-imagen').value || imagenPendienteURL || '';
+
     const body = {
       nombre:       document.getElementById('prod-nombre').value.trim(),
       rubro:        document.getElementById('prod-rubro').value,
@@ -182,6 +249,7 @@
       precioCompra: Number(document.getElementById('prod-precio-compra').value) || 0,
       precioVenta:  Number(document.getElementById('prod-precio-venta').value)  || 0,
       activo:       document.getElementById('prod-activo').value === 'true',
+      imagen,
     };
 
     if (!body.nombre || !body.rubro) {
@@ -225,6 +293,36 @@
   function bindEvents() {
     document.getElementById('btn-nuevo-producto')?.addEventListener('click', () => abrirModalProducto());
     document.getElementById('form-producto')?.addEventListener('submit', guardarProducto);
+
+    // Upload de imagen
+    document.getElementById('prod-imagen-file')?.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      // Validar tamaño máximo 5 MB
+      if (file.size > 5 * 1024 * 1024) {
+        UI.warning('La imagen no puede superar 5 MB');
+        e.target.value = '';
+        return;
+      }
+
+      try {
+        UI.showLoader('Subiendo imagen...');
+        const url = await subirImagen(file);
+        imagenPendienteURL = url;
+        document.getElementById('prod-imagen').value = url;
+        mostrarPreviewImagen(url);
+        UI.success('Imagen subida');
+      } catch (err) {
+        UI.error('No se pudo subir la imagen. Intentá de nuevo.');
+        console.error('Cloudinary upload error:', err);
+      } finally {
+        UI.hideLoader();
+      }
+    });
+
+    // Quitar imagen
+    document.getElementById('btn-quitar-imagen')?.addEventListener('click', limpiarImagen);
 
     // Búsqueda con debounce
     document.getElementById('stock-buscar')?.addEventListener(

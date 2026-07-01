@@ -223,7 +223,8 @@
       <table id="tabla-stock">
         <thead>
           <tr>
-            <th>Producto</th>
+            <th style="width:52px;"></th>
+            <th data-col="nombre">Producto</th>
             <th>Rubro</th>
             <th>Cantidad</th>
             <th>P. Compra</th>
@@ -234,7 +235,7 @@
           </tr>
         </thead>
         <tbody id="tbody-stock">
-          <tr><td colspan="8" class="table-empty">Cargando productos...</td></tr>
+          <tr><td colspan="9" class="table-empty">Cargando productos...</td></tr>
         </tbody>
       </table>
     </div>
@@ -263,6 +264,7 @@
               <option value="">— Seleccioná un producto —</option>
             </select>
             <div class="stock-disponible" id="venta-stock-info"></div>
+            <img id="venta-producto-img" src="" alt="" class="imagen-thumb hidden" style="margin-top:var(--space-2);width:64px;height:64px;" loading="lazy" />
           </div>
 
           <div class="form-grid">
@@ -833,6 +835,30 @@
     <form id="form-producto">
       <div class="modal-body">
         <input type="hidden" id="prod-id" />
+        <input type="hidden" id="prod-imagen" />
+        <!-- Zona de imagen -->
+        <div class="form-group">
+          <label class="form-label">Foto del producto</label>
+          <div id="prod-imagen-zona" class="imagen-upload-zona">
+            <img id="prod-imagen-preview" src="" alt="" class="imagen-preview hidden" />
+            <div id="prod-imagen-placeholder" class="imagen-placeholder">
+              <i data-lucide="image" style="width:32px;height:32px;color:var(--text-muted);"></i>
+              <span style="font-size:var(--font-size-sm);color:var(--text-muted);">Sin foto</span>
+            </div>
+            <div style="display:flex;gap:var(--space-2);margin-top:var(--space-2);">
+              <label id="btn-subir-imagen" class="btn btn-secondary btn-sm" style="cursor:pointer;">
+                <i data-lucide="upload" style="width:14px;"></i> Subir foto
+                <input type="file" id="prod-imagen-file" accept="image/jpeg,image/png,image/webp" style="display:none;" />
+              </label>
+              <button type="button" id="btn-quitar-imagen" class="btn btn-ghost btn-sm hidden" style="color:var(--danger);">
+                <i data-lucide="x" style="width:14px;"></i> Quitar
+              </button>
+            </div>
+            <div id="prod-imagen-progreso" class="hidden" style="margin-top:var(--space-2);font-size:var(--font-size-xs);color:var(--text-muted);">
+              Subiendo imagen...
+            </div>
+          </div>
+        </div>
         <div class="form-group">
           <label class="form-label">Nombre *</label>
           <input type="text" id="prod-nombre" class="form-input" required />

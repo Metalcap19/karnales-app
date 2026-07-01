@@ -7,8 +7,8 @@
 // PUT    /api/productos              → edita producto existente
 // DELETE /api/productos?id=PROD-001  → elimina (desactiva) producto
 //
-// Columnas Productos (0-8):
-// ID | Nombre | Rubro | Cantidad | PrecioCompra | PrecioVenta | Activo | FechaAlta | FechaModificacion
+// Columnas Productos (0-9):
+// ID | Nombre | Rubro | Cantidad | PrecioCompra | PrecioVenta | Activo | FechaAlta | FechaModificacion | Imagen
 //
 // Columnas Rubros (0-2):
 // ID | Nombre | Activo
@@ -28,6 +28,7 @@ function rowToProducto(row) {
     activo:            row[6] === 'TRUE',
     fechaAlta:         row[7] || '',
     fechaModificacion: row[8] || '',
+    imagen:            row[9] || '',
   };
 }
 
@@ -43,6 +44,7 @@ function productoToRow(p) {
     p.activo ? 'TRUE' : 'FALSE',
     p.fechaAlta,
     p.fechaModificacion,
+    p.imagen || '',
   ];
 }
 
@@ -71,14 +73,14 @@ exports.handler = async (event) => {
 
       // GET ?id=PROD-001 → devuelve un producto específico
       if (params.id) {
-        const rows = await readSheet('Productos!A:I');
+        const rows = await readSheet('Productos!A:J');
         const row = rows.find(r => r[0] === params.id);
         if (!row) return respond(404, { error: 'Producto no encontrado' });
         return respond(200, { producto: rowToProducto(row) });
       }
 
       // GET → devuelve todos los productos
-      const rows = await readSheet('Productos!A:I');
+      const rows = await readSheet('Productos!A:J');
       const productos = rows
         .filter(r => r[0]) // filtra filas vacías
         .map(rowToProducto);
@@ -93,7 +95,7 @@ exports.handler = async (event) => {
       }
 
       const data = JSON.parse(event.body || '{}');
-      const { nombre, rubro, cantidad, precioCompra, precioVenta, activo } = data;
+      const { nombre, rubro, cantidad, precioCompra, precioVenta, activo, imagen } = data;
 
       if (!nombre || !rubro) {
         return respond(400, { error: 'Nombre y rubro son requeridos' });
@@ -112,6 +114,7 @@ exports.handler = async (event) => {
         activo: activo !== false,
         fechaAlta: fechaHoy,
         fechaModificacion: fechaHoy,
+        imagen: imagen || '',
       };
 
       await appendRow('Productos', productoToRow(nuevo));
@@ -125,7 +128,7 @@ exports.handler = async (event) => {
       }
 
       const data = JSON.parse(event.body || '{}');
-      const { id, nombre, rubro, cantidad, precioCompra, precioVenta, activo } = data;
+      const { id, nombre, rubro, cantidad, precioCompra, precioVenta, activo, imagen } = data;
 
       if (!id) return respond(400, { error: 'ID requerido' });
 
@@ -133,7 +136,7 @@ exports.handler = async (event) => {
       if (rowIndex === -1) return respond(404, { error: 'Producto no encontrado' });
 
       // Leer datos actuales para no pisar campos que no se envían
-      const rows = await readSheet('Productos!A:I');
+      const rows = await readSheet('Productos!A:J');
       const current = rows.find(r => r[0] === id);
       if (!current) return respond(404, { error: 'Producto no encontrado' });
 
@@ -147,6 +150,7 @@ exports.handler = async (event) => {
         activo:            activo    !== undefined ? activo              : current[6] === 'TRUE',
         fechaAlta:         current[7],
         fechaModificacion: today(),
+        imagen:            imagen    !== undefined ? imagen              : (current[9] || ''),
       };
 
       await updateRow('Productos', rowIndex, productoToRow(actualizado));
@@ -165,7 +169,7 @@ exports.handler = async (event) => {
       const rowIndex = await findRowIndex('Productos', id);
       if (rowIndex === -1) return respond(404, { error: 'Producto no encontrado' });
 
-      const rows = await readSheet('Productos!A:I');
+      const rows = await readSheet('Productos!A:J');
       const current = rows.find(r => r[0] === id);
       if (!current) return respond(404, { error: 'Producto no encontrado' });
 
@@ -180,6 +184,7 @@ exports.handler = async (event) => {
         activo:            false,
         fechaAlta:         current[7],
         fechaModificacion: today(),
+        imagen:            current[9] || '',
       };
 
       await updateRow('Productos', rowIndex, productoToRow(desactivado));

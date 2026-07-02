@@ -5,10 +5,45 @@
 
 const App = (() => {
 
-  // Mapa de screen-name → función de carga (definida en cada screens/*.js)
   const screenLoaders = {};
-
   let currentScreen = null;
+
+  // ── Aplicar configuración visual ─────────────────────────────
+  function aplicarConfig(config) {
+    if (!config) return;
+
+    // Color de acento → actualiza todas las variables --gold-*
+    const color = config.colorAcento || '';
+    if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
+      const r = parseInt(color.slice(1, 3), 16);
+      const g = parseInt(color.slice(3, 5), 16);
+      const b = parseInt(color.slice(5, 7), 16);
+      const root = document.documentElement;
+      const lighten = (v, a) => Math.min(v + a, 255);
+      root.style.setProperty('--gold',        color);
+      root.style.setProperty('--gold-light',  `rgb(${lighten(r,30)},${lighten(g,30)},${lighten(b,30)})`);
+      root.style.setProperty('--gold-dim',    `rgba(${r},${g},${b},0.15)`);
+      root.style.setProperty('--gold-border', `rgba(${r},${g},${b},0.35)`);
+      root.style.setProperty('--border-gold', `rgba(${r},${g},${b},0.4)`);
+      root.style.setProperty('--shadow-gold', `0 0 20px rgba(${r},${g},${b},0.2)`);
+    }
+
+    // Nombre del negocio
+    if (config.nombreNegocio) {
+      const titulo = config.nombreNegocio.toUpperCase();
+      const portadaTitle = document.querySelector('.portada-title');
+      const loginSpan    = document.querySelector('.login-title span');
+      if (portadaTitle) portadaTitle.textContent = titulo;
+      if (loginSpan)    loginSpan.textContent    = config.nombreNegocio;
+      document.title = `${config.nombreNegocio} — Sistema de Gestión`;
+    }
+
+    // Subtítulo portada
+    if (config.subtitulo) {
+      const el = document.querySelector('.portada-subtitle');
+      if (el) el.textContent = config.subtitulo;
+    }
+  }
 
   // ── Registro de loaders por pantalla ────────────────────────
   function register(name, fn) {
@@ -17,7 +52,6 @@ const App = (() => {
 
   // ── Navegar a una pantalla ───────────────────────────────────
   function navigate(name) {
-    // Ocultar todas las screens
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 
     const target = document.getElementById(`screen-${name}`);
@@ -26,21 +60,15 @@ const App = (() => {
     target.classList.add('active');
     currentScreen = name;
 
-    // Mostrar/ocultar header
     const header = document.getElementById('app-header');
     const noHeader = ['portada', 'login'];
     if (header) {
-      if (noHeader.includes(name)) {
-        header.classList.remove('visible');
-      } else {
-        header.classList.add('visible');
-      }
+      if (noHeader.includes(name)) header.classList.remove('visible');
+      else                         header.classList.add('visible');
     }
 
-    // Re-renderizar íconos Lucide en la nueva pantalla
     UI.icons();
 
-    // Ejecutar loader de datos si existe
     if (screenLoaders[name]) {
       try { screenLoaders[name](); } catch (e) { console.error('Screen load error:', e); }
     }
@@ -55,9 +83,8 @@ const App = (() => {
     try {
       const data = await API.login({ usuario, contrasena });
       if (!data) return;
-
       Auth.save(data.token, { usuario: data.usuario, nombre: data.nombre, rol: data.rol });
-      afterLogin();
+      await afterLogin();
     } catch (err) {
       if (errorEl) errorEl.textContent = err.message || 'Usuario o contraseña incorrectos';
     } finally {
@@ -65,7 +92,7 @@ const App = (() => {
     }
   }
 
-  function afterLogin() {
+  async function afterLogin() {
     const user = Auth.getUser();
     if (!user) { navigate('login'); return; }
 
@@ -77,42 +104,40 @@ const App = (() => {
     if (elRol)    elRol.textContent    = user.rol === 'admin' ? 'Administrador' : 'Vendedor';
     if (elMenu)   elMenu.textContent   = user.nombre;
 
-    // Aplicar visibilidad por rol
     Auth.applyRole();
+
+    // Cargar y aplicar configuración visual
+    try {
+      const configData = await API.getConfig();
+      if (configData?.config) aplicarConfig(configData.config);
+    } catch {}
 
     navigate('menu');
   }
 
   function doLogout() {
     Auth.clear();
-
-    // Destruir instancias de Chart.js si existen
     if (window.KarnalesCharts) {
       Object.values(window.KarnalesCharts).forEach(c => { try { c.destroy(); } catch {} });
       window.KarnalesCharts = {};
     }
-
     navigate('portada');
   }
 
   // ── Bootstrap ────────────────────────────────────────────────
   function init() {
-    // Íconos iniciales
     UI.icons();
 
-    // Portada → Login
     document.getElementById('btn-ir-login')?.addEventListener('click', () => navigate('login'));
 
-    // Formulario de login
     document.getElementById('form-login')?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const usuario   = document.getElementById('login-usuario').value.trim();
+      const usuario    = document.getElementById('login-usuario').value.trim();
       const contrasena = document.getElementById('login-contrasena').value;
       if (!usuario || !contrasena) return;
       await doLogin(usuario, contrasena);
     });
 
-    // Recordar usuario
     const savedUser = localStorage.getItem('karnales_remember_user');
     if (savedUser) {
       const inp = document.getElementById('login-usuario');
@@ -123,24 +148,17 @@ const App = (() => {
     });
     document.getElementById('form-login')?.addEventListener('submit', () => {
       const recordar = document.getElementById('login-recordar').checked;
-      if (recordar) {
-        localStorage.setItem('karnales_remember_user', document.getElementById('login-usuario').value.trim());
-      }
+      if (recordar) localStorage.setItem('karnales_remember_user', document.getElementById('login-usuario').value.trim());
     });
 
-    // Botones logout
     document.getElementById('btn-logout')?.addEventListener('click', doLogout);
     document.getElementById('btn-logout-menu')?.addEventListener('click', doLogout);
-
-    // Botón menú principal desde header
     document.getElementById('btn-menu-principal')?.addEventListener('click', () => navigate('menu'));
 
-    // Botones del menú principal
     document.querySelectorAll('.menu-btn[data-screen]').forEach(btn => {
       btn.addEventListener('click', () => navigate(btn.dataset.screen));
     });
 
-    // ── Determinar pantalla inicial ──────────────────────────
     if (Auth.isLoggedIn()) {
       afterLogin();
     } else {
@@ -148,9 +166,9 @@ const App = (() => {
     }
   }
 
-  // ── Inicializar al final, cuando todos los scripts estén cargados ──
   window.addEventListener('load', init);
 
-  return { navigate, register, doLogout };
+  // Exponer aplicarConfig para que configuracion.js lo llame al guardar
+  return { navigate, register, doLogout, aplicarConfig };
 
 })();

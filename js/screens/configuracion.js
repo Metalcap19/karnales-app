@@ -288,6 +288,7 @@
     };
     try {
       await API.saveConfig(body);
+      App.aplicarConfig(body);
       UI.success('Configuración guardada');
     } catch {}
   }

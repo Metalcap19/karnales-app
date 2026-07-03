@@ -109,7 +109,10 @@ const App = (() => {
     // Cargar y aplicar configuración visual
     try {
       const configData = await API.getConfig();
-      if (configData?.config) aplicarConfig(configData.config);
+      if (configData?.config) {
+        aplicarConfig(configData.config);
+        window.KarnalesConfig = configData.config;
+      }
     } catch {}
 
     navigate('menu');

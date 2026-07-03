@@ -5,6 +5,7 @@
 (function () {
 
   let productosCache = [];
+  let ventasHoyCache = [];
 
   // ── Carga principal ─────────────────────────────────────────
   async function cargar() {
@@ -102,12 +103,10 @@
     const labelCliente = document.getElementById('venta-cliente-label');
 
     if (formaPago === 'A pagar') {
-      // Todo en deuda: ocultar zona dividida, setear deuda = total
       if (zona) zona.classList.add('hidden');
       if (labelCliente) labelCliente.textContent = 'Cliente *';
       syncDeudaTotal();
     } else {
-      // Mostrar zona para dividir pago
       if (zona) zona.classList.remove('hidden');
       if (labelCliente) labelCliente.textContent = 'Cliente';
       calcularPreview();
@@ -115,7 +114,6 @@
   }
 
   function syncDeudaTotal() {
-    // Cuando forma de pago = "A pagar", deuda = total completo
     const total = getTotal();
     const pagadoEl = document.getElementById('venta-monto-pagado');
     const deudaEl  = document.getElementById('venta-monto-deuda');
@@ -182,6 +180,7 @@
 
   // ── Historial de hoy ──────────────────────────────────────────
   function renderHistorialHoy(ventas) {
+    ventasHoyCache = ventas;
     const tbody   = document.getElementById('tbody-ventas-hoy');
     const totalEl = document.getElementById('total-ventas-hoy');
     if (!tbody) return;
@@ -190,7 +189,7 @@
     if (totalEl) totalEl.textContent = Utils.formatMoney(total);
 
     if (ventas.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Sin ventas hoy</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="table-empty">Sin ventas hoy</td></tr>`;
       return;
     }
 
@@ -210,8 +209,143 @@
           ${tieneDeuda ? `<br/><span style="font-size:var(--font-size-xs);color:var(--danger);">Debe: ${Utils.formatMoney(v.montoDeuda)}</span>` : ''}
         </td>
         <td>${Utils.esc(v.cliente || '—')}</td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="VentasScreen.imprimirComprobante('${Utils.esc(v.idVenta || '')}')" title="Imprimir comprobante">
+            <i data-lucide="printer" style="width:14px;"></i>
+          </button>
+        </td>
       </tr>`;
     }).join('');
+
+    UI.icons();
+  }
+
+  // ── Comprobante de venta ──────────────────────────────────────
+  function generarComprobante(datos) {
+    const config   = window.KarnalesConfig || {};
+    const negocio  = config.nombreNegocio || 'Karnales';
+    const color    = config.colorAcento   || '#C9A84C';
+    const dir      = config.direccion     || '';
+    const tel      = config.telefono      || '';
+
+    const {
+      idVenta, fecha, producto, talle, cantidad,
+      precioUnitario, descuento, total,
+      formaPago, cliente, observaciones,
+      montoDeuda, montoPagadoAhora, vendedor,
+    } = datos;
+
+    const tieneDeuda = (montoDeuda || 0) > 0;
+    const tieneDesc  = (descuento  || 0) > 0;
+    const subtotal   = (precioUnitario || 0) * (cantidad || 1);
+    const metaLines  = [dir, tel ? `Tel: ${tel}` : ''].filter(Boolean).join(' · ');
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<title>Comprobante ${Utils.esc(idVenta || '')}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:Arial,Helvetica,sans-serif;background:#141414;color:#E8E0D5;display:flex;justify-content:center;padding:24px;}
+  .v{width:480px;background:#1E1E1E;border:1px solid rgba(201,168,76,.3);border-radius:8px;padding:28px 32px;}
+  .hdr{text-align:center;border-bottom:2px solid ${color};padding-bottom:14px;margin-bottom:14px;}
+  .neg{font-size:22px;font-weight:800;letter-spacing:2px;color:${color};}
+  .tit{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8A8078;margin-top:4px;}
+  .meta{font-size:11px;color:#8A8078;margin-top:6px;}
+  .row{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,.06);}
+  .lbl{color:#8A8078;}
+  .val{font-weight:500;text-align:right;}
+  .sec{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);}
+  .total .lbl{color:#E8E0D5;font-weight:700;font-size:14px;}
+  .total .val{color:${color};font-weight:800;font-size:20px;}
+  .deuda .val{color:#F87171;}
+  .ahora .val{color:#4ADE80;}
+  .ftr{text-align:center;margin-top:18px;padding-top:14px;border-top:1px solid rgba(201,168,76,.2);font-size:11px;color:#8A8078;}
+  @media print{
+    body{background:#fff;color:#111;padding:0;}
+    .v{background:#fff;border:1px solid #ccc;color:#111;width:100%;border-radius:0;}
+    .neg{color:${color};}
+    .lbl{color:#555;}
+    .total .lbl{color:#111;}
+    .total .val{color:${color};}
+    .deuda .val{color:#b91c1c;}
+    .ahora .val{color:#166534;}
+    .ftr{color:#aaa;border-top:1px solid #eee;}
+    .row{border-bottom:1px solid #eee;}
+  }
+</style>
+</head>
+<body>
+<div class="v">
+  <div class="hdr">
+    <div class="neg">${Utils.esc(negocio.toUpperCase())}</div>
+    <div class="tit">Comprobante de Venta</div>
+    ${metaLines ? `<div class="meta">${Utils.esc(metaLines)}</div>` : ''}
+  </div>
+
+  <div class="row"><span class="lbl">N° Venta</span><span class="val">${Utils.esc(idVenta || '—')}</span></div>
+  <div class="row"><span class="lbl">Fecha</span><span class="val">${Utils.esc(fecha || '—')}</span></div>
+  <div class="row"><span class="lbl">Vendedor</span><span class="val">${Utils.esc(vendedor || '—')}</span></div>
+
+  <div class="sec">
+    <div class="row"><span class="lbl">Producto</span><span class="val">${Utils.esc(producto || '—')}</span></div>
+    ${talle ? `<div class="row"><span class="lbl">Talle</span><span class="val">${Utils.esc(talle)}</span></div>` : ''}
+    <div class="row"><span class="lbl">Cantidad</span><span class="val">${cantidad || 1}</span></div>
+    <div class="row"><span class="lbl">Precio unitario</span><span class="val">${Utils.formatMoney(precioUnitario)}</span></div>
+    ${tieneDesc ? `<div class="row"><span class="lbl">Subtotal</span><span class="val">${Utils.formatMoney(subtotal)}</span></div>
+    <div class="row"><span class="lbl">Descuento ${descuento}%</span><span class="val">- ${Utils.formatMoney(subtotal - total)}</span></div>` : ''}
+    <div class="row total"><span class="lbl">TOTAL</span><span class="val">${Utils.formatMoney(total)}</span></div>
+  </div>
+
+  <div class="sec">
+    <div class="row"><span class="lbl">Forma de pago</span><span class="val">${Utils.esc(formaPago || '—')}</span></div>
+    ${tieneDeuda ? `
+    <div class="row ahora"><span class="lbl">Pagado ahora</span><span class="val">${Utils.formatMoney(montoPagadoAhora)}</span></div>
+    <div class="row deuda"><span class="lbl">Queda a pagar</span><span class="val">${Utils.formatMoney(montoDeuda)}</span></div>` : ''}
+  </div>
+
+  ${(cliente || observaciones) ? `
+  <div class="sec">
+    ${cliente       ? `<div class="row"><span class="lbl">Cliente</span><span class="val">${Utils.esc(cliente)}</span></div>` : ''}
+    ${observaciones ? `<div class="row"><span class="lbl">Obs.</span><span class="val">${Utils.esc(observaciones)}</span></div>` : ''}
+  </div>` : ''}
+
+  <div class="ftr">Gracias por su compra</div>
+</div>
+<script>window.addEventListener('load',function(){window.print();});<\/script>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank');
+    if (!win) {
+      UI.warning('El navegador bloqueó la ventana emergente. Habilitala para este sitio.');
+      return;
+    }
+    win.document.write(html);
+    win.document.close();
+  }
+
+  function imprimirComprobante(idVenta) {
+    const v = ventasHoyCache.find(x => x.idVenta === idVenta);
+    if (!v) { UI.warning('No se encontró la venta'); return; }
+    const user = Auth.getUser();
+    generarComprobante({
+      idVenta:          v.idVenta,
+      fecha:            v.fecha,
+      producto:         v.producto,
+      talle:            v.talle || '',
+      cantidad:         v.cantidad,
+      precioUnitario:   v.precioUnitario,
+      descuento:        v.descuento,
+      total:            v.precioFinal,
+      formaPago:        v.formaPago,
+      cliente:          v.cliente,
+      observaciones:    v.observaciones,
+      montoDeuda:       v.montoDeuda || 0,
+      montoPagadoAhora: (v.precioFinal || 0) - (v.montoDeuda || 0),
+      vendedor:         v.usuario || user?.nombre || '',
+    });
   }
 
   // ── Confirmar venta ───────────────────────────────────────────
@@ -280,10 +414,28 @@
         : 'Venta registrada correctamente'
       );
 
+      // Generar comprobante automáticamente
+      const user = Auth.getUser();
+      generarComprobante({
+        idVenta:          '—',
+        fecha:            Utils.today(),
+        producto:         opt?.textContent?.split(' (')[0] || '',
+        talle:            opt?.dataset?.talle || '',
+        cantidad,
+        precioUnitario:   precio,
+        descuento,
+        total,
+        formaPago:        formaPagoEfectiva,
+        cliente,
+        observaciones:    observ,
+        montoDeuda,
+        montoPagadoAhora,
+        vendedor:         user?.nombre || user?.usuario || '',
+      });
+
       document.getElementById('form-venta').reset();
       document.getElementById('venta-stock-info').innerHTML = '';
       actualizarImagenVenta('');
-      // Reset zona deuda
       const zona = document.getElementById('venta-deuda-zona');
       if (zona) zona.classList.add('hidden');
       actualizarPreviewDeuda(0, 0);
@@ -313,6 +465,7 @@
   }
 
   App.register('ventas', cargar);
+  window.VentasScreen = { imprimirComprobante };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bindEvents);

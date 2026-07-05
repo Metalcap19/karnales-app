@@ -224,11 +224,11 @@
 
   // ── Comprobante de venta ──────────────────────────────────────
   function generarComprobante(datos) {
-    const config   = window.KarnalesConfig || {};
-    const negocio  = config.nombreNegocio || 'Karnales';
-    const color    = config.colorAcento   || '#C9A84C';
-    const dir      = config.direccion     || '';
-    const tel      = config.telefono      || '';
+    const config  = window.KarnalesConfig || {};
+    const negocio = config.nombreNegocio || 'Karnales';
+    const hex     = config.colorAcento   || '#C9A84C';
+    const dir     = config.direccion     || '';
+    const tel     = config.telefono      || '';
 
     const {
       idVenta, fecha, producto, talle, cantidad,
@@ -240,63 +240,120 @@
     const tieneDeuda = (montoDeuda || 0) > 0;
     const tieneDesc  = (descuento  || 0) > 0;
     const subtotal   = (precioUnitario || 0) * (cantidad || 1);
-    const metaLines  = [dir, tel ? `Tel: ${tel}` : ''].filter(Boolean).join(' · ');
+    const metaLine   = [dir, tel ? `Tel: ${tel}` : ''].filter(Boolean).join(' · ');
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a5', orientation: 'portrait' });
+
+    const W  = 148;
+    const M  = 14;
+    const RW = W - M;
+    const cr = parseInt(hex.slice(1, 3), 16);
+    const cg = parseInt(hex.slice(3, 5), 16);
+    const cb = parseInt(hex.slice(5, 7), 16);
+
+    let y = M + 4;
+
+    // ── encabezado ──
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(cr, cg, cb);
+    doc.text(negocio.toUpperCase(), W / 2, y, { align: 'center' });
+    y += 6;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(160, 160, 160);
+    doc.text('COMPROBANTE DE VENTA', W / 2, y, { align: 'center' });
+    y += 4;
+
+    if (metaLine) {
+      doc.text(metaLine, W / 2, y, { align: 'center' });
+      y += 4;
+    }
+
+    doc.setDrawColor(cr, cg, cb);
+    doc.setLineWidth(0.4);
+    doc.line(M, y, RW, y);
+    y += 5;
+
+    // ── fila label / valor ──
+    function fila(label, valor, colorVal) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(160, 160, 160);
+      doc.text(label, M, y);
+      if (colorVal) doc.setTextColor(...colorVal);
+      doc.text(String(valor), RW, y, { align: 'right' });
+      doc.setDrawColor(230, 230, 230);
+      doc.setLineWidth(0.1);
+      doc.line(M, y + 1.5, RW, y + 1.5);
+      y += 6;
+    }
+
+    function separador() {
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.2);
+      doc.line(M, y, RW, y);
+      y += 4;
+    }
+
+    // ── datos cabecera ──
+    fila('N° Venta',  idVenta || '—');
+    fila('Fecha',     fecha   || '—');
+    fila('Vendedor',  vendedor || '—');
+
+    separador();
+
+    // ── producto ──
+    fila('Producto',       producto || '—');
+    if (talle) fila('Talle', talle);
+    fila('Cantidad',       String(cantidad || 1));
+    fila('Precio unitario', Utils.formatMoney(precioUnitario));
+
+    if (tieneDesc) {
+      fila('Subtotal',         Utils.formatMoney(subtotal));
+      fila(`Descuento ${descuento}%`, '- ' + Utils.formatMoney(subtotal - total));
+    }
+
+    // TOTAL
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(160, 160, 160);
+    doc.text('TOTAL', M, y);
+    doc.setFontSize(14);
+    doc.setTextColor(cr, cg, cb);
+    doc.text(Utils.formatMoney(total), RW, y, { align: 'right' });
+    y += 8;
+
+    separador();
+
+    // ── pago ──
+    fila('Forma de pago', formaPago || '—');
+    if (tieneDeuda) {
+      fila('Pagado ahora',   Utils.formatMoney(montoPagadoAhora), [22, 101, 52]);
+      fila('Queda a pagar',  Utils.formatMoney(montoDeuda),       [185, 28, 28]);
+    }
+
+    if (cliente || observaciones) {
+      separador();
+      if (cliente)       fila('Cliente', cliente);
+      if (observaciones) fila('Obs.',    observaciones);
+    }
+
+    // ── pie ──
+    y += 4;
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.2);
+    doc.line(M, y, RW, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(170, 170, 170);
+    doc.text('Gracias por su compra', W / 2, y, { align: 'center' });
 
     const nombreArchivo = `Comprobante-${(idVenta || Utils.today()).replace(/[^a-zA-Z0-9-]/g, '')}.pdf`;
-
-    const contenido = `
-<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#111;background:#fff;padding:28px 32px;">
-  <div style="text-align:center;border-bottom:2px solid ${color};padding-bottom:14px;margin-bottom:14px;">
-    <div style="font-size:22px;font-weight:800;letter-spacing:2px;color:${color};">${Utils.esc(negocio.toUpperCase())}</div>
-    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-top:4px;">Comprobante de Venta</div>
-    ${metaLines ? `<div style="font-size:11px;color:#888;margin-top:6px;">${Utils.esc(metaLines)}</div>` : ''}
-  </div>
-
-  <table style="width:100%;border-collapse:collapse;">
-    <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">N° Venta</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.esc(idVenta || '—')}</td></tr>
-    <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Fecha</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.esc(fecha || '—')}</td></tr>
-    <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Vendedor</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.esc(vendedor || '—')}</td></tr>
-  </table>
-
-  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
-    <table style="width:100%;border-collapse:collapse;">
-      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Producto</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.esc(producto || '—')}</td></tr>
-      ${talle ? `<tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Talle</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.esc(talle)}</td></tr>` : ''}
-      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Cantidad</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${cantidad || 1}</td></tr>
-      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Precio unitario</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(precioUnitario)}</td></tr>
-      ${tieneDesc ? `
-      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Subtotal</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(subtotal)}</td></tr>
-      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Descuento ${descuento}%</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">- ${Utils.formatMoney(subtotal - total)}</td></tr>` : ''}
-      <tr><td style="padding:8px 0;font-weight:700;font-size:14px;color:#aaa;">TOTAL</td><td style="padding:8px 0;text-align:right;font-weight:800;font-size:18px;color:${color};">${Utils.formatMoney(total)}</td></tr>
-    </table>
-  </div>
-
-  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
-    <table style="width:100%;border-collapse:collapse;">
-      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Forma de pago</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.esc(formaPago || '—')}</td></tr>
-      ${tieneDeuda ? `
-      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Pagado ahora</td><td style="padding:5px 0;text-align:right;font-weight:600;color:#166534;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(montoPagadoAhora)}</td></tr>
-      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Queda a pagar</td><td style="padding:5px 0;text-align:right;font-weight:600;color:#b91c1c;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(montoDeuda)}</td></tr>` : ''}
-    </table>
-  </div>
-
-  ${(cliente || observaciones) ? `
-  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
-    <table style="width:100%;border-collapse:collapse;">
-      ${cliente       ? `<tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Cliente</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.esc(cliente)}</td></tr>` : ''}
-      ${observaciones ? `<tr><td style="padding:5px 0;color:#aaa;">Obs.</td><td style="padding:5px 0;text-align:right;color:#aaa;">${Utils.esc(observaciones)}</td></tr>` : ''}
-    </table>
-  </div>` : ''}
-
-  <div style="text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#aaa;">Gracias por su compra</div>
-</div>`;
-
-    html2pdf().from(contenido, 'string').set({
-      margin:      [8, 8, 8, 8],
-      filename:    nombreArchivo,
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-      jsPDF:       { unit: 'mm', format: 'a5', orientation: 'portrait' },
-    }).save();
+    doc.save(nombreArchivo);
   }
 
   function imprimirComprobante(idVenta) {

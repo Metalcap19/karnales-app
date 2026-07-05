@@ -160,17 +160,24 @@ exports.handler = async (event) => {
       // 4. Si hay deuda, crear registro en Deudores
       if (deuda > 0) {
         const deudorId = await nextId('Deudores', 'DEU');
+        // Si pagó algo al comprar, lo registramos como primer pago en el historial
+        const historialInicial = montoPagadoAhora > 0
+          ? JSON.stringify([{ fecha: fechaHoy, monto: montoPagadoAhora }])
+          : JSON.stringify([]);
         await appendRow('Deudores', [
           deudorId,
           fechaHoy,
           idVenta,
           cliente.trim(),
           prodRow[1],
-          deuda,
+          deuda,           // col F: monto de la deuda inicial
           'Pendiente',
           auth.payload.usuario,
-          '', // fechaPago vacía hasta que pague
+          '',              // col I: fechaPago (vacía hasta que salde)
           observaciones.trim(),
+          0,               // col K: montoPagado (arranca en 0, los pagos se acumulan acá)
+          historialInicial,// col L: historial JSON con el pago inicial si lo hubo
+          precioFinal,     // col M: precio original del producto
         ]);
       }
 

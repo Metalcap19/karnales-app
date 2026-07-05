@@ -5,8 +5,8 @@
 // GET    /api/deudores?cliente=Juan     → filtrar por cliente
 // PUT    /api/deudores                  → registrar pago parcial o total + caja
 //
-// Columnas Deudores (0-10):
-// ID | Fecha | VentaID | Cliente | Producto | Monto | Estado | Vendedor | FechaPago | Observaciones | MontoPagado
+// Columnas Deudores (0-12):
+// ID | Fecha | VentaID | Cliente | Producto | Monto | Estado | Vendedor | FechaPago | Observaciones | MontoPagado | HistorialPagos | PrecioOriginal
 
 const {
   readSheet, appendRow, updateRow, findRowIndex,
@@ -15,24 +15,26 @@ const {
 const { verifyToken } = require('./_auth');
 
 function rowToDeudor(row) {
-  const monto       = Number(row[5]) || 0;
-  const montoPagado = Number(row[10]) || 0;
+  const monto          = Number(row[5])  || 0;
+  const montoPagado    = Number(row[10]) || 0;
+  const precioOriginal = Number(row[12]) || 0;
   let historialPagos = [];
   try { historialPagos = JSON.parse(row[11] || '[]'); } catch {}
   return {
-    id:             row[0] || '',
-    fecha:          row[1] || '',
-    ventaId:        row[2] || '',
-    cliente:        row[3] || '',
-    producto:       row[4] || '',
+    id:              row[0] || '',
+    fecha:           row[1] || '',
+    ventaId:         row[2] || '',
+    cliente:         row[3] || '',
+    producto:        row[4] || '',
     monto,
-    estado:         row[6] || 'Pendiente',
-    vendedor:       row[7] || '',
-    fechaPago:      row[8] || '',
-    observaciones:  row[9] || '',
+    estado:          row[6] || 'Pendiente',
+    vendedor:        row[7] || '',
+    fechaPago:       row[8] || '',
+    observaciones:   row[9] || '',
     montoPagado,
-    saldo:          Math.max(0, monto - montoPagado),
+    saldo:           Math.max(0, monto - montoPagado),
     historialPagos,
+    precioOriginal,  // precio total del producto al momento de la venta
   };
 }
 
@@ -48,7 +50,7 @@ exports.handler = async (event) => {
   try {
     // ── GET ───────────────────────────────────────────────────────────────────
     if (method === 'GET') {
-      const rows = await readSheet('Deudores!A:K');
+      const rows = await readSheet('Deudores!A:M');
       let deudores = rows.filter(r => r[0]).map(rowToDeudor);
 
       if (params.estado) {
@@ -80,7 +82,7 @@ exports.handler = async (event) => {
       const rowIndex = await findRowIndex('Deudores', id);
       if (rowIndex === -1) return respond(404, { error: 'Deudor no encontrado' });
 
-      const rows = await readSheet('Deudores!A:K');
+      const rows = await readSheet('Deudores!A:M');
       const current = rows.find(r => r[0] === id);
       if (!current) return respond(404, { error: 'Deudor no encontrado' });
 
@@ -116,7 +118,8 @@ exports.handler = async (event) => {
         esFinal ? fechaHoy : (current[8] || ''),
         observaciones.trim() || current[9],
         nuevoAbonado,
-        JSON.stringify(historialPagos),           // col L: historial de pagos
+        JSON.stringify(historialPagos),
+        current[12] || '',                        // col M: precioOriginal (no cambia)
       ]);
 
       // Cada pago se registra en Caja por separado con su fecha

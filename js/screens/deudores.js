@@ -233,10 +233,11 @@
     const tel     = config.telefono      || '';
     const metaLine = [dir, tel ? `Tel: ${tel}` : ''].filter(Boolean).join(' · ');
 
-    const esPagado = d.estado === 'Pagado';
-    const saldo    = d.saldo ?? d.monto;
-    const abonado  = d.montoPagado || 0;
-    const historial = d.historialPagos || [];
+    const esPagado      = d.estado === 'Pagado';
+    const saldo         = d.saldo ?? d.monto;
+    const historial     = d.historialPagos || [];
+    // precioOriginal = precio total del producto; si no existe (deudas viejas) usamos monto + lo pagado al comprar
+    const precioOriginal = d.precioOriginal || (d.monto + (historial[0]?.monto || 0));
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'mm', format: 'a5', orientation: 'portrait' });
@@ -273,7 +274,6 @@
     doc.line(M, y, RW, y);
     y += 5;
 
-    // ── fila label / valor ──
     function fila(label, valor, colorVal) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
@@ -296,18 +296,28 @@
     }
 
     // ── datos del deudor ──
-    fila('Cliente',  d.cliente  || '—');
-    fila('Producto', d.producto || '—');
-    fila('Fecha venta', d.fecha || '—');
+    fila('Cliente',     d.cliente  || '—');
+    fila('Producto',    d.producto || '—');
+    fila('Fecha venta', d.fecha    || '—');
     if (d.vendedor) fila('Vendedor', d.vendedor);
 
     separador();
 
-    // ── montos ──
-    fila('Deuda original', Utils.formatMoney(d.monto));
+    // ── precio original ──
+    fila('Precio original', Utils.formatMoney(precioOriginal));
 
-    if (abonado > 0) fila('Total abonado', Utils.formatMoney(abonado), [22, 101, 52]);
+    // ── cada entrega con su fecha ──
+    if (historial.length > 0) {
+      historial.forEach((p, i) => {
+        const label = i === 0 && historial.length > 0 && d.precioOriginal
+          ? `Entregado al comprar (${p.fecha})`
+          : `Entregado (${p.fecha})`;
+        fila(label, Utils.formatMoney(p.monto), [22, 101, 52]);
+      });
+    }
 
+    // ── saldo ──
+    y += 2;
     if (esPagado) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
@@ -322,36 +332,13 @@
       y += 8;
     } else {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
+      doc.setFontSize(10);
       doc.setTextColor(80, 80, 80);
       doc.text('SALDO PENDIENTE', M, y);
       doc.setFontSize(14);
       doc.setTextColor(185, 28, 28);
       doc.text(Utils.formatMoney(saldo), RW, y, { align: 'right' });
       y += 8;
-    }
-
-    // ── historial de pagos ──
-    if (historial.length > 0) {
-      separador();
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(80, 80, 80);
-      doc.text('HISTORIAL DE PAGOS', M, y);
-      y += 5;
-
-      historial.forEach((p, i) => {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.setTextColor(80, 80, 80);
-        doc.text(`${i + 1}. ${p.fecha}`, M + 2, y);
-        doc.setTextColor(22, 101, 52);
-        doc.text(Utils.formatMoney(p.monto), RW, y, { align: 'right' });
-        doc.setDrawColor(220, 220, 220);
-        doc.setLineWidth(0.1);
-        doc.line(M, y + 1.5, RW, y + 1.5);
-        y += 6;
-      });
     }
 
     // ── pie ──
@@ -363,9 +350,12 @@
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(100, 100, 100);
-    doc.text(esPagado ? 'Gracias por saldar su deuda' : 'Documento informativo de estado de cuenta', W / 2, y, { align: 'center' });
+    doc.text(
+      esPagado ? 'Gracias por saldar su deuda' : 'Documento informativo de estado de cuenta',
+      W / 2, y, { align: 'center' }
+    );
 
-    const nombreArchivo = `${esPagado ? 'Comprobante' : 'EstadoCuenta'}-${Utils.esc(d.cliente || d.id).replace(/[^a-zA-Z0-9]/g, '')}.pdf`;
+    const nombreArchivo = `${esPagado ? 'Comprobante' : 'EstadoCuenta'}-${(d.cliente || d.id).replace(/[^a-zA-Z0-9]/g, '')}.pdf`;
     doc.save(nombreArchivo);
   }
 

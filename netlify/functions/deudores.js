@@ -17,19 +17,22 @@ const { verifyToken } = require('./_auth');
 function rowToDeudor(row) {
   const monto       = Number(row[5]) || 0;
   const montoPagado = Number(row[10]) || 0;
+  let historialPagos = [];
+  try { historialPagos = JSON.parse(row[11] || '[]'); } catch {}
   return {
-    id:            row[0] || '',
-    fecha:         row[1] || '',
-    ventaId:       row[2] || '',
-    cliente:       row[3] || '',
-    producto:      row[4] || '',
+    id:             row[0] || '',
+    fecha:          row[1] || '',
+    ventaId:        row[2] || '',
+    cliente:        row[3] || '',
+    producto:       row[4] || '',
     monto,
-    estado:        row[6] || 'Pendiente',
-    vendedor:      row[7] || '',
-    fechaPago:     row[8] || '',
-    observaciones: row[9] || '',
+    estado:         row[6] || 'Pendiente',
+    vendedor:       row[7] || '',
+    fechaPago:      row[8] || '',
+    observaciones:  row[9] || '',
     montoPagado,
-    saldo:         Math.max(0, monto - montoPagado),
+    saldo:          Math.max(0, monto - montoPagado),
+    historialPagos,
   };
 }
 
@@ -97,18 +100,23 @@ exports.handler = async (event) => {
       const esFinal       = quedaSaldo <= 0;
       const fechaHoy      = today();
 
+      let historialPagos = [];
+      try { historialPagos = JSON.parse(current[11] || '[]'); } catch {}
+      historialPagos.push({ fecha: fechaHoy, monto: pago });
+
       await updateRow('Deudores', rowIndex, [
-        current[0],                               // id
-        current[1],                               // fecha original
-        current[2],                               // ventaId
-        current[3],                               // cliente
-        current[4],                               // producto
-        current[5],                               // monto total (no cambia)
+        current[0],
+        current[1],
+        current[2],
+        current[3],
+        current[4],
+        current[5],
         esFinal ? 'Pagado' : 'Pendiente',
-        current[7],                               // vendedor
-        esFinal ? fechaHoy : (current[8] || ''), // fechaPago solo si se salda
+        current[7],
+        esFinal ? fechaHoy : (current[8] || ''),
         observaciones.trim() || current[9],
-        nuevoAbonado,                             // col K: acumulado pagado
+        nuevoAbonado,
+        JSON.stringify(historialPagos),           // col L: historial de pagos
       ]);
 
       // Cada pago se registra en Caja por separado con su fecha

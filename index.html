@@ -734,15 +734,9 @@
       <h2 class="screen-title">
         <i data-lucide="user-x" class="icon"></i> Deudores
       </h2>
-      <div style="display:flex;gap:var(--space-2);">
-        <button class="btn btn-secondary" id="btn-reporte-deudores">
-          <i data-lucide="file-text"></i> Reporte PDF
-        </button>
-        <select id="deudores-filtro-estado" class="form-select" style="width:auto;">
-          <option value="Pendiente">Solo pendientes</option>
-          <option value="">Todos</option>
-        </select>
-      </div>
+      <button class="btn btn-secondary" id="btn-reporte-deudores">
+        <i data-lucide="file-text"></i> Reporte PDF
+      </button>
     </div>
 
     <!-- KPI deudores -->
@@ -762,6 +756,7 @@
       <input type="text" id="deudores-buscar" class="form-input" placeholder="Buscar por cliente..." style="max-width:320px;" />
     </div>
 
+    <!-- Tabla pendientes -->
     <div class="table-wrapper">
       <table id="tabla-deudores">
         <thead>
@@ -769,16 +764,49 @@
             <th>Fecha</th>
             <th>Cliente</th>
             <th>Producto</th>
-            <th>Monto</th>
+            <th>Saldo</th>
             <th>Vendedor</th>
             <th>Estado</th>
             <th>Acciones</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="tbody-deudores">
-          <tr><td colspan="7" class="table-empty">Cargando...</td></tr>
+          <tr><td colspan="8" class="table-empty">Cargando...</td></tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Deudas cobradas -->
+    <div style="margin-top:var(--space-8);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3);">
+        <h3 style="font-size:var(--font-size-base);font-weight:600;color:var(--text-secondary);display:flex;align-items:center;gap:6px;">
+          <i data-lucide="check-circle" style="width:16px;height:16px;"></i> Deudas cobradas
+        </h3>
+        <button class="btn btn-ghost btn-sm" id="btn-toggle-cobradas">
+          <i data-lucide="chevron-down" style="width:14px;"></i> Mostrar
+        </button>
+      </div>
+      <div id="cobradas-container" class="hidden">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha venta</th>
+                <th>Cliente</th>
+                <th>Producto</th>
+                <th>Total</th>
+                <th>Vendedor</th>
+                <th>Fecha pago</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody-cobradas">
+              <tr><td colspan="7" class="table-empty">Sin deudas cobradas</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </section>
 

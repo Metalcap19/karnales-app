@@ -242,59 +242,61 @@
     const subtotal   = (precioUnitario || 0) * (cantidad || 1);
     const metaLines  = [dir, tel ? `Tel: ${tel}` : ''].filter(Boolean).join(' · ');
 
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;width:500px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#111;background:#fff;';
-    wrapper.innerHTML = `
-<div style="padding:28px 32px;border:1px solid #e0e0e0;border-radius:8px;background:#fff;">
+    const nombreArchivo = `Comprobante-${(idVenta || Utils.today()).replace(/[^a-zA-Z0-9-]/g, '')}.pdf`;
+
+    const contenido = `
+<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#111;background:#fff;padding:28px 32px;">
   <div style="text-align:center;border-bottom:2px solid ${color};padding-bottom:14px;margin-bottom:14px;">
     <div style="font-size:22px;font-weight:800;letter-spacing:2px;color:${color};">${Utils.esc(negocio.toUpperCase())}</div>
     <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-top:4px;">Comprobante de Venta</div>
     ${metaLines ? `<div style="font-size:11px;color:#888;margin-top:6px;">${Utils.esc(metaLines)}</div>` : ''}
   </div>
 
-  <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">N° Venta</span><span style="font-weight:500;">${Utils.esc(idVenta || '—')}</span></div>
-  <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Fecha</span><span style="font-weight:500;">${Utils.esc(fecha || '—')}</span></div>
-  <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Vendedor</span><span style="font-weight:500;">${Utils.esc(vendedor || '—')}</span></div>
+  <table style="width:100%;border-collapse:collapse;">
+    <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">N° Venta</td><td style="padding:5px 0;text-align:right;font-weight:500;border-bottom:1px solid #f0f0f0;">${Utils.esc(idVenta || '—')}</td></tr>
+    <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Fecha</td><td style="padding:5px 0;text-align:right;font-weight:500;border-bottom:1px solid #f0f0f0;">${Utils.esc(fecha || '—')}</td></tr>
+    <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Vendedor</td><td style="padding:5px 0;text-align:right;font-weight:500;border-bottom:1px solid #f0f0f0;">${Utils.esc(vendedor || '—')}</td></tr>
+  </table>
 
   <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Producto</span><span style="font-weight:600;">${Utils.esc(producto || '—')}</span></div>
-    ${talle ? `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Talle</span><span style="font-weight:600;">${Utils.esc(talle)}</span></div>` : ''}
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Cantidad</span><span style="font-weight:500;">${cantidad || 1}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Precio unitario</span><span style="font-weight:500;">${Utils.formatMoney(precioUnitario)}</span></div>
-    ${tieneDesc ? `
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Subtotal</span><span>${Utils.formatMoney(subtotal)}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Descuento ${descuento}%</span><span>- ${Utils.formatMoney(subtotal - total)}</span></div>` : ''}
-    <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="font-weight:700;font-size:14px;">TOTAL</span><span style="font-weight:800;font-size:18px;color:${color};">${Utils.formatMoney(total)}</span></div>
+    <table style="width:100%;border-collapse:collapse;">
+      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Producto</td><td style="padding:5px 0;text-align:right;font-weight:600;border-bottom:1px solid #f0f0f0;">${Utils.esc(producto || '—')}</td></tr>
+      ${talle ? `<tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Talle</td><td style="padding:5px 0;text-align:right;font-weight:600;border-bottom:1px solid #f0f0f0;">${Utils.esc(talle)}</td></tr>` : ''}
+      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Cantidad</td><td style="padding:5px 0;text-align:right;font-weight:500;border-bottom:1px solid #f0f0f0;">${cantidad || 1}</td></tr>
+      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Precio unitario</td><td style="padding:5px 0;text-align:right;font-weight:500;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(precioUnitario)}</td></tr>
+      ${tieneDesc ? `
+      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Subtotal</td><td style="padding:5px 0;text-align:right;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(subtotal)}</td></tr>
+      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Descuento ${descuento}%</td><td style="padding:5px 0;text-align:right;border-bottom:1px solid #f0f0f0;">- ${Utils.formatMoney(subtotal - total)}</td></tr>` : ''}
+      <tr><td style="padding:8px 0;font-weight:700;font-size:14px;">TOTAL</td><td style="padding:8px 0;text-align:right;font-weight:800;font-size:18px;color:${color};">${Utils.formatMoney(total)}</td></tr>
+    </table>
   </div>
 
   <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Forma de pago</span><span style="font-weight:500;">${Utils.esc(formaPago || '—')}</span></div>
-    ${tieneDeuda ? `
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Pagado ahora</span><span style="font-weight:600;color:#166534;">${Utils.formatMoney(montoPagadoAhora)}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Queda a pagar</span><span style="font-weight:600;color:#b91c1c;">${Utils.formatMoney(montoDeuda)}</span></div>` : ''}
+    <table style="width:100%;border-collapse:collapse;">
+      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Forma de pago</td><td style="padding:5px 0;text-align:right;font-weight:500;border-bottom:1px solid #f0f0f0;">${Utils.esc(formaPago || '—')}</td></tr>
+      ${tieneDeuda ? `
+      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Pagado ahora</td><td style="padding:5px 0;text-align:right;font-weight:600;color:#166534;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(montoPagadoAhora)}</td></tr>
+      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Queda a pagar</td><td style="padding:5px 0;text-align:right;font-weight:600;color:#b91c1c;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(montoDeuda)}</td></tr>` : ''}
+    </table>
   </div>
 
   ${(cliente || observaciones) ? `
   <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
-    ${cliente       ? `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Cliente</span><span style="font-weight:500;">${Utils.esc(cliente)}</span></div>` : ''}
-    ${observaciones ? `<div style="display:flex;justify-content:space-between;padding:6px 0;"><span style="color:#666;">Obs.</span><span style="font-weight:500;">${Utils.esc(observaciones)}</span></div>` : ''}
+    <table style="width:100%;border-collapse:collapse;">
+      ${cliente       ? `<tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Cliente</td><td style="padding:5px 0;text-align:right;font-weight:500;border-bottom:1px solid #f0f0f0;">${Utils.esc(cliente)}</td></tr>` : ''}
+      ${observaciones ? `<tr><td style="padding:5px 0;color:#666;">Obs.</td><td style="padding:5px 0;text-align:right;font-weight:500;">${Utils.esc(observaciones)}</td></tr>` : ''}
+    </table>
   </div>` : ''}
 
   <div style="text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#aaa;">Gracias por su compra</div>
 </div>`;
 
-    document.body.appendChild(wrapper);
-
-    const nombreArchivo = `Comprobante-${(idVenta || Utils.today()).replace(/[^a-zA-Z0-9-]/g, '')}.pdf`;
-
-    html2pdf().from(wrapper).set({
+    html2pdf().from(contenido, 'string').set({
       margin:      [8, 8, 8, 8],
       filename:    nombreArchivo,
       html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
       jsPDF:       { unit: 'mm', format: 'a5', orientation: 'portrait' },
-    }).save().finally(() => {
-      document.body.removeChild(wrapper);
-    });
+    }).save();
   }
 
   function imprimirComprobante(idVenta) {

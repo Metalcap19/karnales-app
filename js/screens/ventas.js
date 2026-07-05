@@ -27,7 +27,9 @@
 
   async function cargarVentasHoy() {
     try {
-      const data = await API.getVentas({ fecha: 'hoy' });
+      const fechaEl = document.getElementById('ventas-fecha-filtro');
+      const fecha   = fechaEl?.value || Utils.today();
+      const data    = await API.getVentas({ fecha });
       if (!data) return;
       renderHistorialHoy(data.ventas || []);
     } catch (e) {
@@ -240,90 +242,59 @@
     const subtotal   = (precioUnitario || 0) * (cantidad || 1);
     const metaLines  = [dir, tel ? `Tel: ${tel}` : ''].filter(Boolean).join(' · ');
 
-    const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8"/>
-<title>Comprobante ${Utils.esc(idVenta || '')}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:Arial,Helvetica,sans-serif;background:#141414;color:#E8E0D5;display:flex;justify-content:center;padding:24px;}
-  .v{width:480px;background:#1E1E1E;border:1px solid rgba(201,168,76,.3);border-radius:8px;padding:28px 32px;}
-  .hdr{text-align:center;border-bottom:2px solid ${color};padding-bottom:14px;margin-bottom:14px;}
-  .neg{font-size:22px;font-weight:800;letter-spacing:2px;color:${color};}
-  .tit{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8A8078;margin-top:4px;}
-  .meta{font-size:11px;color:#8A8078;margin-top:6px;}
-  .row{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,.06);}
-  .lbl{color:#8A8078;}
-  .val{font-weight:500;text-align:right;}
-  .sec{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);}
-  .total .lbl{color:#E8E0D5;font-weight:700;font-size:14px;}
-  .total .val{color:${color};font-weight:800;font-size:20px;}
-  .deuda .val{color:#F87171;}
-  .ahora .val{color:#4ADE80;}
-  .ftr{text-align:center;margin-top:18px;padding-top:14px;border-top:1px solid rgba(201,168,76,.2);font-size:11px;color:#8A8078;}
-  @media print{
-    body{background:#fff;color:#111;padding:0;}
-    .v{background:#fff;border:1px solid #ccc;color:#111;width:100%;border-radius:0;}
-    .neg{color:${color};}
-    .lbl{color:#555;}
-    .total .lbl{color:#111;}
-    .total .val{color:${color};}
-    .deuda .val{color:#b91c1c;}
-    .ahora .val{color:#166534;}
-    .ftr{color:#aaa;border-top:1px solid #eee;}
-    .row{border-bottom:1px solid #eee;}
-  }
-</style>
-</head>
-<body>
-<div class="v">
-  <div class="hdr">
-    <div class="neg">${Utils.esc(negocio.toUpperCase())}</div>
-    <div class="tit">Comprobante de Venta</div>
-    ${metaLines ? `<div class="meta">${Utils.esc(metaLines)}</div>` : ''}
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;width:500px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#111;background:#fff;';
+    wrapper.innerHTML = `
+<div style="padding:28px 32px;border:1px solid #e0e0e0;border-radius:8px;background:#fff;">
+  <div style="text-align:center;border-bottom:2px solid ${color};padding-bottom:14px;margin-bottom:14px;">
+    <div style="font-size:22px;font-weight:800;letter-spacing:2px;color:${color};">${Utils.esc(negocio.toUpperCase())}</div>
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-top:4px;">Comprobante de Venta</div>
+    ${metaLines ? `<div style="font-size:11px;color:#888;margin-top:6px;">${Utils.esc(metaLines)}</div>` : ''}
   </div>
 
-  <div class="row"><span class="lbl">N° Venta</span><span class="val">${Utils.esc(idVenta || '—')}</span></div>
-  <div class="row"><span class="lbl">Fecha</span><span class="val">${Utils.esc(fecha || '—')}</span></div>
-  <div class="row"><span class="lbl">Vendedor</span><span class="val">${Utils.esc(vendedor || '—')}</span></div>
+  <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">N° Venta</span><span style="font-weight:500;">${Utils.esc(idVenta || '—')}</span></div>
+  <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Fecha</span><span style="font-weight:500;">${Utils.esc(fecha || '—')}</span></div>
+  <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Vendedor</span><span style="font-weight:500;">${Utils.esc(vendedor || '—')}</span></div>
 
-  <div class="sec">
-    <div class="row"><span class="lbl">Producto</span><span class="val">${Utils.esc(producto || '—')}</span></div>
-    ${talle ? `<div class="row"><span class="lbl">Talle</span><span class="val">${Utils.esc(talle)}</span></div>` : ''}
-    <div class="row"><span class="lbl">Cantidad</span><span class="val">${cantidad || 1}</span></div>
-    <div class="row"><span class="lbl">Precio unitario</span><span class="val">${Utils.formatMoney(precioUnitario)}</span></div>
-    ${tieneDesc ? `<div class="row"><span class="lbl">Subtotal</span><span class="val">${Utils.formatMoney(subtotal)}</span></div>
-    <div class="row"><span class="lbl">Descuento ${descuento}%</span><span class="val">- ${Utils.formatMoney(subtotal - total)}</span></div>` : ''}
-    <div class="row total"><span class="lbl">TOTAL</span><span class="val">${Utils.formatMoney(total)}</span></div>
+  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Producto</span><span style="font-weight:600;">${Utils.esc(producto || '—')}</span></div>
+    ${talle ? `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Talle</span><span style="font-weight:600;">${Utils.esc(talle)}</span></div>` : ''}
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Cantidad</span><span style="font-weight:500;">${cantidad || 1}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Precio unitario</span><span style="font-weight:500;">${Utils.formatMoney(precioUnitario)}</span></div>
+    ${tieneDesc ? `
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Subtotal</span><span>${Utils.formatMoney(subtotal)}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Descuento ${descuento}%</span><span>- ${Utils.formatMoney(subtotal - total)}</span></div>` : ''}
+    <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="font-weight:700;font-size:14px;">TOTAL</span><span style="font-weight:800;font-size:18px;color:${color};">${Utils.formatMoney(total)}</span></div>
   </div>
 
-  <div class="sec">
-    <div class="row"><span class="lbl">Forma de pago</span><span class="val">${Utils.esc(formaPago || '—')}</span></div>
+  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Forma de pago</span><span style="font-weight:500;">${Utils.esc(formaPago || '—')}</span></div>
     ${tieneDeuda ? `
-    <div class="row ahora"><span class="lbl">Pagado ahora</span><span class="val">${Utils.formatMoney(montoPagadoAhora)}</span></div>
-    <div class="row deuda"><span class="lbl">Queda a pagar</span><span class="val">${Utils.formatMoney(montoDeuda)}</span></div>` : ''}
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Pagado ahora</span><span style="font-weight:600;color:#166534;">${Utils.formatMoney(montoPagadoAhora)}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Queda a pagar</span><span style="font-weight:600;color:#b91c1c;">${Utils.formatMoney(montoDeuda)}</span></div>` : ''}
   </div>
 
   ${(cliente || observaciones) ? `
-  <div class="sec">
-    ${cliente       ? `<div class="row"><span class="lbl">Cliente</span><span class="val">${Utils.esc(cliente)}</span></div>` : ''}
-    ${observaciones ? `<div class="row"><span class="lbl">Obs.</span><span class="val">${Utils.esc(observaciones)}</span></div>` : ''}
+  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
+    ${cliente       ? `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;"><span style="color:#666;">Cliente</span><span style="font-weight:500;">${Utils.esc(cliente)}</span></div>` : ''}
+    ${observaciones ? `<div style="display:flex;justify-content:space-between;padding:6px 0;"><span style="color:#666;">Obs.</span><span style="font-weight:500;">${Utils.esc(observaciones)}</span></div>` : ''}
   </div>` : ''}
 
-  <div class="ftr">Gracias por su compra</div>
-</div>
-<script>window.addEventListener('load',function(){window.print();});<\/script>
-</body>
-</html>`;
+  <div style="text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#aaa;">Gracias por su compra</div>
+</div>`;
 
-    const win = window.open('', '_blank');
-    if (!win) {
-      UI.warning('El navegador bloqueó la ventana emergente. Habilitala para este sitio.');
-      return;
-    }
-    win.document.write(html);
-    win.document.close();
+    document.body.appendChild(wrapper);
+
+    const nombreArchivo = `Comprobante-${(idVenta || Utils.today()).replace(/[^a-zA-Z0-9-]/g, '')}.pdf`;
+
+    html2pdf().from(wrapper).set({
+      margin:      [8, 8, 8, 8],
+      filename:    nombreArchivo,
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+      jsPDF:       { unit: 'mm', format: 'a5', orientation: 'portrait' },
+    }).save().finally(() => {
+      document.body.removeChild(wrapper);
+    });
   }
 
   function imprimirComprobante(idVenta) {
@@ -452,6 +423,13 @@
 
   // ── Eventos ──────────────────────────────────────────────────
   function bindEvents() {
+    // Inicializar fecha del historial en hoy
+    const fechaFiltroEl = document.getElementById('ventas-fecha-filtro');
+    if (fechaFiltroEl) {
+      fechaFiltroEl.value = Utils.today();
+      fechaFiltroEl.addEventListener('change', cargarVentasHoy);
+    }
+
     document.getElementById('venta-producto')?.addEventListener('change', actualizarStockInfo);
     document.getElementById('venta-cantidad')?.addEventListener('input',  calcularPreview);
     document.getElementById('venta-precio')?.addEventListener('input',    calcularPreview);

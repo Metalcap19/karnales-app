@@ -20,6 +20,9 @@
 
   <!-- SheetJS (exportar Excel) -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+  <!-- html2pdf (generar PDF sin diálogo de impresora) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -362,8 +365,11 @@
       <!-- Historial del día -->
       <div class="ventas-historial">
         <div class="card-header" style="margin-bottom:var(--space-4);">
-          <div class="card-title"><i data-lucide="clock" class="icon"></i> Ventas de Hoy</div>
-          <div class="kpi-value gold" id="total-ventas-hoy">$ 0</div>
+          <div class="card-title"><i data-lucide="clock" class="icon"></i> Ventas del día</div>
+          <div style="display:flex;align-items:center;gap:var(--space-3);">
+            <input type="date" id="ventas-fecha-filtro" class="form-input" style="width:160px;" />
+            <div class="kpi-value gold" id="total-ventas-hoy">$ 0</div>
+          </div>
         </div>
         <div class="table-wrapper">
           <table>

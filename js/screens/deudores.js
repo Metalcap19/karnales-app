@@ -6,6 +6,43 @@
 
   let todosLosDeudores = [];
 
+  // ── Modal de pago parcial (se crea una sola vez) ─────────────
+  function asegurarModal() {
+    if (document.getElementById('modal-pago-parcial')) return;
+
+    const el = document.createElement('div');
+    el.id        = 'modal-pago-parcial';
+    el.className = 'modal-backdrop hidden';
+    el.innerHTML = `
+      <div class="modal" style="max-width:420px;">
+        <div class="modal-header">
+          <h3 class="modal-title">Registrar pago</h3>
+          <button class="btn btn-ghost btn-sm" data-close="modal-pago-parcial">
+            <i data-lucide="x" style="width:16px;"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="pago-info" style="background:var(--bg-secondary);border-radius:var(--radius-md);padding:var(--space-3);margin-bottom:var(--space-4);font-size:var(--font-size-sm);display:grid;gap:6px;"></div>
+          <div class="form-group">
+            <label class="form-label" for="pago-monto">Monto que paga ahora *</label>
+            <input type="number" id="pago-monto" class="form-input" min="1" step="1" placeholder="0"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="pago-obs">Observaciones</label>
+            <input type="text" id="pago-obs" class="form-input" placeholder="Opcional"/>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" data-close="modal-pago-parcial">Cancelar</button>
+          <button class="btn btn-primary" id="btn-confirmar-pago">
+            <i data-lucide="check" style="width:16px;"></i> Confirmar pago
+          </button>
+        </div>
+      </div>`;
+    document.body.appendChild(el);
+    UI.icons();
+  }
+
   // ── Carga principal ─────────────────────────────────────────
   async function cargar() {
     try {
@@ -48,14 +85,24 @@
     }
 
     tbody.innerHTML = lista.map(d => {
-      const pendiente = d.estado === 'Pendiente';
+      const pendiente  = d.estado === 'Pendiente';
+      const saldo      = d.saldo ?? d.monto;
+      const abonado    = d.montoPagado || 0;
+      const tienePagos = abonado > 0;
+
       const estadoBadge = pendiente
         ? `<span class="badge badge-danger">Pendiente</span>`
         : `<span class="badge badge-success">Pagado</span>`;
 
+      const montoCol = pendiente
+        ? `<div style="font-weight:700;color:var(--danger);">${Utils.formatMoney(saldo)}</div>
+           ${tienePagos ? `<div style="font-size:var(--font-size-xs);color:var(--text-muted);">Total: ${Utils.formatMoney(d.monto)} · Abonado: ${Utils.formatMoney(abonado)}</div>` : ''}`
+        : `<div style="font-weight:700;color:var(--success);">${Utils.formatMoney(d.monto)}</div>`;
+
       const acciones = pendiente
-        ? `<button class="btn btn-primary btn-sm" onclick="DeudoresScreen.cobrar('${Utils.esc(d.id)}','${Utils.esc(d.cliente)}','${d.monto}')">
-             <i data-lucide="check" style="width:14px;"></i> Cobrar
+        ? `<button class="btn btn-primary btn-sm"
+             onclick="DeudoresScreen.abrirPago('${Utils.esc(d.id)}','${Utils.esc(d.cliente)}',${d.monto},${saldo},${abonado})">
+             <i data-lucide="banknote" style="width:14px;"></i> Cobrar
            </button>`
         : `<span style="font-size:var(--font-size-xs);color:var(--text-muted);">${Utils.esc(d.fechaPago || '')}</span>`;
 
@@ -63,9 +110,7 @@
         <td style="font-size:var(--font-size-sm);">${Utils.esc(d.fecha)}</td>
         <td><strong>${Utils.esc(d.cliente || '—')}</strong></td>
         <td>${Utils.esc(d.producto || '—')}</td>
-        <td style="font-weight:700;color:${pendiente ? 'var(--danger)' : 'var(--success)'};">
-          ${Utils.formatMoney(d.monto)}
-        </td>
+        <td>${montoCol}</td>
         <td style="font-size:var(--font-size-sm);">${Utils.esc(d.vendedor || '—')}</td>
         <td>${estadoBadge}</td>
         <td>${acciones}</td>
@@ -75,22 +120,56 @@
     UI.icons();
   }
 
-  // ── Cobrar deuda ─────────────────────────────────────────────
-  async function cobrar(id, cliente, monto) {
-    const ok = await UI.confirm({
-      message: `¿Cobrar deuda de ${Utils.esc(cliente)}?`,
-      sub: `${Utils.formatMoney(Number(monto))} — se registrará como ingreso en Caja.`,
-      icon: '💰',
-      okText: 'Cobrar',
-      okClass: 'btn-primary',
-    });
-    if (!ok) return;
+  // ── Abrir modal de pago ───────────────────────────────────────
+  function abrirPago(id, cliente, monto, saldo, abonado) {
+    asegurarModal();
 
-    try {
-      await API.cobrarDeuda({ id });
-      UI.success('Deuda cobrada y registrada en caja');
-      cargar();
-    } catch {}
+    const infoEl = document.getElementById('pago-info');
+    infoEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;">
+        <span style="color:var(--text-muted);">Cliente</span>
+        <strong>${Utils.esc(cliente)}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <span style="color:var(--text-muted);">Deuda original</span>
+        <span>${Utils.formatMoney(monto)}</span>
+      </div>
+      ${abonado > 0 ? `
+      <div style="display:flex;justify-content:space-between;">
+        <span style="color:var(--text-muted);">Ya abonado</span>
+        <span style="color:var(--success);">${Utils.formatMoney(abonado)}</span>
+      </div>` : ''}
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:6px;margin-top:2px;">
+        <span style="font-weight:600;">Saldo pendiente</span>
+        <span style="font-weight:700;color:var(--danger);">${Utils.formatMoney(saldo)}</span>
+      </div>`;
+
+    const montoInput = document.getElementById('pago-monto');
+    const obsInput   = document.getElementById('pago-obs');
+    montoInput.value = saldo;
+    obsInput.value   = '';
+    montoInput.max   = saldo;
+
+    UI.openModal('modal-pago-parcial');
+    setTimeout(() => montoInput.focus(), 100);
+
+    const btnConfirmar = document.getElementById('btn-confirmar-pago');
+    const nuevo = btnConfirmar.cloneNode(true);
+    btnConfirmar.replaceWith(nuevo);
+
+    nuevo.addEventListener('click', async () => {
+      const montoParcial = Number(montoInput.value);
+      if (!montoParcial || montoParcial <= 0) { UI.warning('Ingresá un monto válido'); return; }
+      if (montoParcial > saldo)               { UI.warning(`El monto no puede superar el saldo (${Utils.formatMoney(saldo)})`); return; }
+
+      try {
+        const res = await API.cobrarDeuda({ id, montoParcial, observaciones: obsInput.value.trim() });
+        if (!res) return;
+        UI.closeModal('modal-pago-parcial');
+        UI.success(res.mensaje || 'Pago registrado');
+        cargar();
+      } catch {}
+    }, { once: true });
   }
 
   // ── Reporte PDF ──────────────────────────────────────────────
@@ -103,15 +182,19 @@
     }
 
     const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const totalPendiente = lista.reduce((acc, d) => acc + d.monto, 0);
+    const totalPendiente = lista.reduce((acc, d) => acc + (d.saldo ?? d.monto), 0);
 
-    const filas = lista.map(d => `<tr>
-      <td>${Utils.esc(d.fecha)}</td>
-      <td><strong>${Utils.esc(d.cliente || '—')}</strong></td>
-      <td>${Utils.esc(d.producto || '—')}</td>
-      <td class="monto">${Utils.formatMoney(d.monto)}</td>
-      <td>${Utils.esc(d.vendedor || '—')}</td>
-    </tr>`).join('');
+    const filas = lista.map(d => {
+      const saldo   = d.saldo ?? d.monto;
+      const abonado = d.montoPagado || 0;
+      return `<tr>
+        <td>${Utils.esc(d.fecha)}</td>
+        <td><strong>${Utils.esc(d.cliente || '—')}</strong></td>
+        <td>${Utils.esc(d.producto || '—')}</td>
+        <td class="monto">${Utils.formatMoney(saldo)}${abonado > 0 ? `<br/><span style="font-size:10px;color:#888;">Abonado: ${Utils.formatMoney(abonado)}</span>` : ''}</td>
+        <td>${Utils.esc(d.vendedor || '—')}</td>
+      </tr>`;
+    }).join('');
 
     const html = `<!DOCTYPE html>
 <html lang="es">
@@ -153,7 +236,7 @@
       <th>Fecha venta</th>
       <th>Cliente</th>
       <th>Producto</th>
-      <th style="text-align:right;">Monto</th>
+      <th style="text-align:right;">Saldo</th>
       <th>Vendedor</th>
     </tr>
   </thead>
@@ -191,7 +274,7 @@
   }
 
   App.register('deudores', cargar);
-  window.DeudoresScreen = { cobrar };
+  window.DeudoresScreen = { abrirPago };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bindEvents);

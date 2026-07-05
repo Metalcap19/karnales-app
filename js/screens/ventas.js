@@ -253,38 +253,38 @@
   </div>
 
   <table style="width:100%;border-collapse:collapse;">
-    <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">N° Venta</td><td style="padding:5px 0;text-align:right;font-weight:500;border-bottom:1px solid #f0f0f0;">${Utils.esc(idVenta || '—')}</td></tr>
-    <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Fecha</td><td style="padding:5px 0;text-align:right;font-weight:500;border-bottom:1px solid #f0f0f0;">${Utils.esc(fecha || '—')}</td></tr>
-    <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Vendedor</td><td style="padding:5px 0;text-align:right;font-weight:500;border-bottom:1px solid #f0f0f0;">${Utils.esc(vendedor || '—')}</td></tr>
+    <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">N° Venta</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.esc(idVenta || '—')}</td></tr>
+    <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Fecha</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.esc(fecha || '—')}</td></tr>
+    <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Vendedor</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.esc(vendedor || '—')}</td></tr>
   </table>
 
   <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
     <table style="width:100%;border-collapse:collapse;">
-      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Producto</td><td style="padding:5px 0;text-align:right;font-weight:600;border-bottom:1px solid #f0f0f0;">${Utils.esc(producto || '—')}</td></tr>
-      ${talle ? `<tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Talle</td><td style="padding:5px 0;text-align:right;font-weight:600;border-bottom:1px solid #f0f0f0;">${Utils.esc(talle)}</td></tr>` : ''}
-      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Cantidad</td><td style="padding:5px 0;text-align:right;font-weight:500;border-bottom:1px solid #f0f0f0;">${cantidad || 1}</td></tr>
-      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Precio unitario</td><td style="padding:5px 0;text-align:right;font-weight:500;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(precioUnitario)}</td></tr>
+      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Producto</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.esc(producto || '—')}</td></tr>
+      ${talle ? `<tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Talle</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.esc(talle)}</td></tr>` : ''}
+      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Cantidad</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${cantidad || 1}</td></tr>
+      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Precio unitario</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(precioUnitario)}</td></tr>
       ${tieneDesc ? `
-      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Subtotal</td><td style="padding:5px 0;text-align:right;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(subtotal)}</td></tr>
-      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Descuento ${descuento}%</td><td style="padding:5px 0;text-align:right;border-bottom:1px solid #f0f0f0;">- ${Utils.formatMoney(subtotal - total)}</td></tr>` : ''}
-      <tr><td style="padding:8px 0;font-weight:700;font-size:14px;">TOTAL</td><td style="padding:8px 0;text-align:right;font-weight:800;font-size:18px;color:${color};">${Utils.formatMoney(total)}</td></tr>
+      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Subtotal</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(subtotal)}</td></tr>
+      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Descuento ${descuento}%</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">- ${Utils.formatMoney(subtotal - total)}</td></tr>` : ''}
+      <tr><td style="padding:8px 0;font-weight:700;font-size:14px;color:#aaa;">TOTAL</td><td style="padding:8px 0;text-align:right;font-weight:800;font-size:18px;color:${color};">${Utils.formatMoney(total)}</td></tr>
     </table>
   </div>
 
   <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
     <table style="width:100%;border-collapse:collapse;">
-      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Forma de pago</td><td style="padding:5px 0;text-align:right;font-weight:500;border-bottom:1px solid #f0f0f0;">${Utils.esc(formaPago || '—')}</td></tr>
+      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Forma de pago</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.esc(formaPago || '—')}</td></tr>
       ${tieneDeuda ? `
-      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Pagado ahora</td><td style="padding:5px 0;text-align:right;font-weight:600;color:#166534;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(montoPagadoAhora)}</td></tr>
-      <tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Queda a pagar</td><td style="padding:5px 0;text-align:right;font-weight:600;color:#b91c1c;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(montoDeuda)}</td></tr>` : ''}
+      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Pagado ahora</td><td style="padding:5px 0;text-align:right;font-weight:600;color:#166534;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(montoPagadoAhora)}</td></tr>
+      <tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Queda a pagar</td><td style="padding:5px 0;text-align:right;font-weight:600;color:#b91c1c;border-bottom:1px solid #f0f0f0;">${Utils.formatMoney(montoDeuda)}</td></tr>` : ''}
     </table>
   </div>
 
   ${(cliente || observaciones) ? `
   <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
     <table style="width:100%;border-collapse:collapse;">
-      ${cliente       ? `<tr><td style="padding:5px 0;color:#666;border-bottom:1px solid #f0f0f0;">Cliente</td><td style="padding:5px 0;text-align:right;font-weight:500;border-bottom:1px solid #f0f0f0;">${Utils.esc(cliente)}</td></tr>` : ''}
-      ${observaciones ? `<tr><td style="padding:5px 0;color:#666;">Obs.</td><td style="padding:5px 0;text-align:right;font-weight:500;">${Utils.esc(observaciones)}</td></tr>` : ''}
+      ${cliente       ? `<tr><td style="padding:5px 0;color:#aaa;border-bottom:1px solid #f0f0f0;">Cliente</td><td style="padding:5px 0;text-align:right;color:#aaa;border-bottom:1px solid #f0f0f0;">${Utils.esc(cliente)}</td></tr>` : ''}
+      ${observaciones ? `<tr><td style="padding:5px 0;color:#aaa;">Obs.</td><td style="padding:5px 0;text-align:right;color:#aaa;">${Utils.esc(observaciones)}</td></tr>` : ''}
     </table>
   </div>` : ''}
 

@@ -362,19 +362,34 @@
         </form>
       </div>
 
-      <!-- Historial del día -->
+      <!-- Historial de ventas -->
       <div class="ventas-historial">
-        <div class="card-header" style="margin-bottom:var(--space-4);">
-          <div class="card-title"><i data-lucide="clock" class="icon"></i> Ventas del día</div>
-          <div style="display:flex;align-items:center;gap:var(--space-3);">
-            <input type="date" id="ventas-fecha-filtro" class="form-input" style="width:160px;" />
-            <div class="kpi-value gold" id="total-ventas-hoy">$ 0</div>
+        <div class="card-header" style="margin-bottom:var(--space-3);">
+          <div class="card-title"><i data-lucide="clock" class="icon"></i> Historial de ventas</div>
+          <div class="kpi-value gold" id="total-ventas-hoy">$ 0</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-3);">
+          <select id="ventas-rango-preset" class="form-input" style="width:auto;">
+            <option value="hoy">Hoy</option>
+            <option value="7">Últimos 7 días</option>
+            <option value="15" selected>Últimos 15 días</option>
+            <option value="30">Último mes</option>
+            <option value="365">Último año</option>
+            <option value="todos">Todos</option>
+            <option value="custom">Rango personalizado</option>
+          </select>
+          <div id="ventas-rango-custom" style="display:none;align-items:center;gap:var(--space-2);">
+            <input type="date" id="ventas-desde" class="form-input" style="width:150px;" />
+            <span style="color:var(--text-muted);">→</span>
+            <input type="date" id="ventas-hasta" class="form-input" style="width:150px;" />
+            <button class="btn btn-sm btn-primary" id="ventas-aplicar-rango">Aplicar</button>
           </div>
         </div>
         <div class="table-wrapper">
           <table>
             <thead>
               <tr>
+                <th>Fecha</th>
                 <th>Producto</th>
                 <th>Cant.</th>
                 <th>Total</th>
@@ -384,7 +399,7 @@
               </tr>
             </thead>
             <tbody id="tbody-ventas-hoy">
-              <tr><td colspan="6" class="table-empty">Sin ventas hoy</td></tr>
+              <tr><td colspan="7" class="table-empty">Sin ventas</td></tr>
             </tbody>
           </table>
         </div>

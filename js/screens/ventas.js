@@ -4,12 +4,13 @@
 
 (function () {
 
-  let productosCache = [];
-  let ventasHoyCache = [];
+  let productosCache  = [];
+  let ventasHoyCache  = [];
+  let todasLasVentas  = [];
 
   // ── Carga principal ─────────────────────────────────────────
   async function cargar() {
-    await Promise.all([cargarProductos(), cargarVentasHoy()]);
+    await Promise.all([cargarProductos(), cargarTodasLasVentas()]);
   }
 
   async function cargarProductos() {
@@ -25,16 +26,42 @@
     }
   }
 
-  async function cargarVentasHoy() {
+  async function cargarTodasLasVentas() {
     try {
-      const fechaEl = document.getElementById('ventas-fecha-filtro');
-      const fecha   = fechaEl?.value || Utils.today();
-      const data    = await API.getVentas({ fecha });
+      const data = await API.getVentas();
       if (!data) return;
-      renderHistorialHoy(data.ventas || []);
+      todasLasVentas = data.ventas || [];
+      aplicarFiltroRango();
     } catch (e) {
-      console.error('Ventas: error cargando ventas de hoy', e);
+      console.error('Ventas: error cargando ventas', e);
     }
+  }
+
+  function fechaDesdePreset(preset) {
+    const hoy = Utils.today();
+    if (preset === 'hoy')  return { desde: hoy, hasta: hoy };
+    if (preset === 'todos') return { desde: null, hasta: null };
+    if (preset === 'custom') {
+      return {
+        desde: document.getElementById('ventas-desde')?.value || null,
+        hasta: document.getElementById('ventas-hasta')?.value || null,
+      };
+    }
+    const dias = Number(preset);
+    const desde = new Date();
+    desde.setDate(desde.getDate() - dias + 1);
+    return { desde: desde.toISOString().slice(0, 10), hasta: hoy };
+  }
+
+  function aplicarFiltroRango() {
+    const preset = document.getElementById('ventas-rango-preset')?.value || '15';
+    const { desde, hasta } = fechaDesdePreset(preset);
+    const filtradas = todasLasVentas.filter(v => {
+      if (desde && v.fecha < desde) return false;
+      if (hasta && v.fecha > hasta) return false;
+      return true;
+    });
+    renderHistorialHoy(filtradas);
   }
 
   // ── Poblar select de productos ────────────────────────────────
@@ -180,7 +207,7 @@
     }
   }
 
-  // ── Historial de hoy ──────────────────────────────────────────
+  // ── Historial ────────────────────────────────────────────────
   function renderHistorialHoy(ventas) {
     ventasHoyCache = ventas;
     const tbody   = document.getElementById('tbody-ventas-hoy');
@@ -191,15 +218,19 @@
     if (totalEl) totalEl.textContent = Utils.formatMoney(total);
 
     if (ventas.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="table-empty">Sin ventas hoy</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Sin ventas en el período</td></tr>`;
       return;
     }
 
-    const sorted = [...ventas].sort((a, b) => (b.idVenta || '').localeCompare(a.idVenta || ''));
+    const sorted = [...ventas].sort((a, b) => {
+      const d = (b.fecha || '').localeCompare(a.fecha || '');
+      return d !== 0 ? d : (b.idVenta || '').localeCompare(a.idVenta || '');
+    });
 
     tbody.innerHTML = sorted.map(v => {
       const tieneDeuda = (Number(v.montoDeuda) || 0) > 0;
       return `<tr>
+        <td style="white-space:nowrap;">${Utils.formatDate(v.fecha)}</td>
         <td>
           <div style="font-weight:500;">${Utils.esc(v.producto || '—')}</div>
           <div style="font-size:var(--font-size-xs);color:var(--text-muted);">${Utils.esc(v.idVenta || '')}</div>
@@ -357,7 +388,7 @@
   }
 
   function imprimirComprobante(idVenta) {
-    const v = ventasHoyCache.find(x => x.idVenta === idVenta);
+    const v = todasLasVentas.find(x => x.idVenta === idVenta);
     if (!v) { UI.warning('No se encontró la venta'); return; }
     const user = Auth.getUser();
     generarComprobante({
@@ -482,12 +513,20 @@
 
   // ── Eventos ──────────────────────────────────────────────────
   function bindEvents() {
-    // Inicializar fecha del historial en hoy
-    const fechaFiltroEl = document.getElementById('ventas-fecha-filtro');
-    if (fechaFiltroEl) {
-      fechaFiltroEl.value = Utils.today();
-      fechaFiltroEl.addEventListener('change', cargarVentasHoy);
-    }
+    // Rango preset
+    document.getElementById('ventas-rango-preset')?.addEventListener('change', () => {
+      const val = document.getElementById('ventas-rango-preset').value;
+      const custom = document.getElementById('ventas-rango-custom');
+      if (custom) custom.style.display = val === 'custom' ? 'flex' : 'none';
+      if (val !== 'custom') aplicarFiltroRango();
+    });
+    // Rango personalizado
+    const hoy = Utils.today();
+    const desdeEl = document.getElementById('ventas-desde');
+    const hastaEl = document.getElementById('ventas-hasta');
+    if (desdeEl && !desdeEl.value) desdeEl.value = hoy;
+    if (hastaEl && !hastaEl.value) hastaEl.value = hoy;
+    document.getElementById('ventas-aplicar-rango')?.addEventListener('click', aplicarFiltroRango);
 
     document.getElementById('venta-producto')?.addEventListener('change', actualizarStockInfo);
     document.getElementById('venta-cantidad')?.addEventListener('input',  calcularPreview);

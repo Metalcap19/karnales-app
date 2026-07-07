@@ -80,10 +80,15 @@ async function findRowIndex(sheetName, idValue) {
 async function nextId(sheetName, prefix) {
   const rows = await readSheet(`${sheetName}!A:A`);
   if (rows.length === 0) return `${prefix}-001`;
-  const last = rows[rows.length - 1][0] || '';
-  const parts = last.split('-');
-  const num = parseInt(parts[parts.length - 1], 10) || 0;
-  return `${prefix}-${String(num + 1).padStart(3, '0')}`;
+  let maxNum = 0;
+  for (const row of rows) {
+    const val = (row[0] || '').toString();
+    if (val.startsWith(prefix + '-')) {
+      const num = parseInt(val.split('-').pop(), 10) || 0;
+      if (num > maxNum) maxNum = num;
+    }
+  }
+  return `${prefix}-${String(maxNum + 1).padStart(3, '0')}`;
 }
 
 // Genera ID de venta con fecha: VTA-YYYYMMDD-001

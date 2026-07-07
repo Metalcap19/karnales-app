@@ -289,6 +289,7 @@
     try {
       await API.saveConfig(body);
       App.aplicarConfig(body);
+      window.KarnalesConfig = Object.assign(window.KarnalesConfig || {}, body);
       UI.success('Configuración guardada');
     } catch {}
   }

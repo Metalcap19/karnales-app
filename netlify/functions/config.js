@@ -34,6 +34,19 @@ exports.handler = async (event) => {
   const seccion = params.seccion || '';
   const method  = event.httpMethod;
 
+  // GET /api/config sin sección es público (para aplicar colores en la pantalla de login)
+  if (!seccion && method === 'GET') {
+    try {
+      const rows = await readSheet('Config!A:B');
+      const config = {};
+      rows.forEach(r => { if (r[0]) config[r[0]] = r[1] || ''; });
+      return respond(200, { config });
+    } catch (err) {
+      console.error('Error leyendo config pública:', err);
+      return respond(500, { error: 'Error interno' });
+    }
+  }
+
   // cambiar-password solo requiere token válido (cualquier rol)
   // todo lo demás requiere admin
   let auth;

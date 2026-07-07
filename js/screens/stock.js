@@ -192,7 +192,9 @@
     } catch {}
 
     if (id) {
+      console.log('[Stock] editar id recibido:', JSON.stringify(id), '| productos cargados:', todosLosProductos.map(p => JSON.stringify(p.id)));
       const prod = todosLosProductos.find(p => p.id === id);
+      console.log('[Stock] producto encontrado:', prod ? prod.nombre : 'NO ENCONTRADO');
       if (!prod) return;
       document.getElementById('modal-producto-titulo').textContent = 'Editar Producto';
       document.getElementById('prod-id').value            = prod.id;

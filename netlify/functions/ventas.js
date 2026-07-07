@@ -85,7 +85,7 @@ exports.handler = async (event) => {
       if (montoDeuda > 0 && !cliente.trim()) return respond(400, { error: 'El nombre del cliente es requerido cuando hay monto a pagar' });
 
       // Verificar que el producto existe y tiene stock suficiente
-      const prodRows = await readSheet('Productos!A:I');
+      const prodRows = await readSheet('Productos!A:K');
       const prodRow = prodRows.find(r => r[0] === productoId && r[6] === 'TRUE');
 
       if (!prodRow) return respond(404, { error: 'Producto no encontrado o inactivo' });

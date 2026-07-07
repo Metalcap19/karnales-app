@@ -166,14 +166,11 @@ const App = (() => {
       afterLogin();
     } else {
       // Aplicar colores antes de mostrar login (endpoint público, sin token)
-      try {
-        const configData = await fetch('/.netlify/functions/config').then(r => r.json()).catch(() => null);
-        if (configData?.config) {
-          aplicarConfig(configData.config);
-          window.KarnalesConfig = configData.config;
-        }
-      } catch {}
-      navigate('portada');
+      fetch('/.netlify/functions/config')
+        .then(r => r.json())
+        .then(data => { if (data?.config) { aplicarConfig(data.config); window.KarnalesConfig = data.config; } })
+        .catch(() => {})
+        .finally(() => navigate('portada'));
     }
   }
 
